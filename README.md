@@ -7,7 +7,7 @@
 ### Unassigned
 
 ### Ziming
-- [] Upload current code to this repo
+- [ ] Upload current code to this repo
 
 ### Eric
 

@@ -15,4 +15,9 @@
 
 ### Ouail
 
+## Misc Resources
+Some tweets on grokking:
+- https://twitter.com/ericjang11/status/1480633788505812992
+- https://twitter.com/PreetumNakkiran/status/1480656919496781824
+- https://twitter.com/TrentonBricken/status/1480666591775887369
 

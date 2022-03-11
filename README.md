@@ -5,6 +5,7 @@
 ## Tasks
 
 ### Unassigned
+- [ ] Do a study of when/how individual fully-connected layers and self-attention layers can implement certain operations exactly (when things have good representations). This is to understand how believable the toy model is, which implements an operation exactly (addition). See what binary operations are in the original grokking paper and describe how they can be implemented with network layers, if you have good representations.
 
 ### Ziming
 - [ ] Upload current code to this repo

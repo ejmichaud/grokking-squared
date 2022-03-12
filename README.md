@@ -32,3 +32,7 @@ Some tweets on grokking:
 - https://twitter.com/PreetumNakkiran/status/1480656919496781824
 - https://twitter.com/TrentonBricken/status/1480666591775887369
 
+Reproductions:
+- https://github.com/teddykoker/grokking
+
+

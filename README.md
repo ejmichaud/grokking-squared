@@ -18,7 +18,10 @@
 
 ## Things to be explained
 
+1. Why generalization happens at all and why it occurs far after the training accuracies goes up.
+2. Why there is an exponential growth in the necessary training time to grok as a function of training data fraction.
 
+Also how hyperparameters effect these things.
 
 ## Other Theories & References
 - A poster from the original grokking paper, which shows that models that grok tend to have very low measures of "sharpness" in the loss landscape: `https://mathai-iclr.github.io/papers/posters/MATHAI_29_poster.png`

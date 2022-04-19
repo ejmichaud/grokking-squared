@@ -267,6 +267,7 @@ def run(p,
     # Define data set
 
     latent = dict()
+
     latent_tensor = latent_init_scale * torch.randn(p, hidden_rep_dim).to(device)
     latent_tensor.requires_grad = True
     for i in range(p):

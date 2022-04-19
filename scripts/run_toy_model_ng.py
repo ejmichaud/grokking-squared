@@ -118,7 +118,7 @@ def cfg():
     decoder_width = 200
     decoder_depth = 3
     activation_fn = nn.Tanh  
-    train_steps = 2
+    train_steps = 10
     log_freq = 1 #train_steps / 100
     optimizer = torch.optim.Adam
     encoder_lr = 1e-3
@@ -271,9 +271,9 @@ def run(p,
     
     latent = dict()
     latent_tensor = torch.nn.parameter.Parameter(torch.normal(0,latent_init_scale,size=(p,hidden_rep_dim),requires_grad=True)).to(device)
+    
     for i in range(p):
         latent[i] = latent_tensor[i:i+1]
-    
     
         
     symbol_reps = dict()

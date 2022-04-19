@@ -11,6 +11,9 @@ import random
 import time
 from pathlib import Path
 
+import math
+from sympy.combinatorics.named_groups import SymmetricGroup
+
 import numpy as np
 from tqdm.auto import tqdm
 
@@ -37,7 +40,7 @@ class ToyModel(nn.Module):
 
         Arguments:
             digit_rep_dim (int): Dimension of vectors representing symbols in binary op table
-            internal_rep_dim (int): Dimension of encoded representation (usually 1 or 2)
+            internal_rep_dim (int): Dimension of encoded representation (n^2 for the symmetric group S_n)
             encoder_width (int): Width of MLP for the encoder
             encoder_depth (int): Depth of MLP for the encoder (a depth of 2 is 1 hidden layer)
             decoder_width (int): Width of MLP for the decoder
@@ -81,10 +84,13 @@ class ToyModel(nn.Module):
         `x` must contain vectors of dimension 2 * `digit_rep_dim`, since it represents a pair
         of symbols that we want to compute our binary operation between.
         """
+        n = int(math.sqrt(self.internal_rep_dim))
         x1 = x[..., :self.internal_rep_dim]
         x2 = x[..., self.internal_rep_dim:]
-        # return self.decoder(self.encoder(x1) + self.encoder(x2))
-        return self.decoder(x1 + x2)
+        x1_matrix = x1.reshape(-1, n, n)
+        x2_matrix = x2.reshape(-1, n, n)
+        product = torch.matmul(x1_matrix, x2_matrix)
+        return self.decoder(product.reshape(-1, n*n))
 
 
 def distance(x, y):
@@ -108,12 +114,12 @@ def distance(x, y):
 def cfg():
     """To perform multiple runs with the same parameters, 
     simply set a different seed for each run."""
-    p = 10               # number of symbols (numbers) on each axis of the addition table
+    n = 4 # number of symbols permutation is over -- there are n! elements in the group S_n
     symbol_rep_dim = 10  # dimension of space to map symbols (numbers) into
     train_fraction = 0.8  # fraction of the table to use in the train set
     encoder_width = 200
     encoder_depth = 3
-    hidden_rep_dim = 1   # dimension of internal representation (encoder output)
+    # hidden_rep_dim = 1 : can't customize since internal rep dim must be n^2 (permutation matrix)
     decoder_width = 200
     decoder_depth = 3
     activation_fn = nn.Tanh
@@ -129,104 +135,104 @@ def cfg():
     dtype = torch.float64
 
 
-def ideal_test_acc(train_id, test_id, p):
-    # computer ideal (test accuracy). This only depends on training dataset, assuming an ideal algorithm.
-    all_num = len(train_id) + len(test_id)
-    pairs = [(i, j) for (i, j) in product(range(p), range(p)) if i <= j]
-    #-----------Parallelogram set---------#
-    P0 = []  # P0 is the set of all possible parallelograms
-    P0_id = []
+# def ideal_test_acc(train_id, test_id, p):
+#     # computer ideal (test accuracy). This only depends on training dataset, assuming an ideal algorithm.
+#     all_num = len(train_id) + len(test_id)
+#     pairs = [(i, j) for (i, j) in product(range(p), range(p)) if i <= j]
+#     #-----------Parallelogram set---------#
+#     P0 = []  # P0 is the set of all possible parallelograms
+#     P0_id = []
 
-    ii = 0
-    for i in range(all_num):
-        for j in range(i + 1, all_num):
-            if np.sum(pairs[i]) == np.sum(pairs[j]):
-                P0.append(frozenset({pairs[i], pairs[j]}))
-                P0_id.append(ii)
-                ii += 1
+#     ii = 0
+#     for i in range(all_num):
+#         for j in range(i + 1, all_num):
+#             if np.sum(pairs[i]) == np.sum(pairs[j]):
+#                 P0.append(frozenset({pairs[i], pairs[j]}))
+#                 P0_id.append(ii)
+#                 ii += 1
 
-    P0_num = len(P0_id)  # P0_num is the number of elements in P0
+#     P0_num = len(P0_id)  # P0_num is the number of elements in P0
 
-    #---------Linear Equation set---------#
-    A = []
-    eq_id = 0
+#     #---------Linear Equation set---------#
+#     A = []
+#     eq_id = 0
 
-    for i1 in range(P0_num):
-        i, j = list(P0[i1])[0]
-        m, n = list(P0[i1])[1]
-        if i + j == m + n:
-            x = np.zeros(p,)
-            x[i] = x[i] + 1
-            x[j] = x[j] + 1
-            x[m] = x[m] - 1
-            x[n] = x[n] - 1
-            A.append(x)
-            eq_id = eq_id + 1
+#     for i1 in range(P0_num):
+#         i, j = list(P0[i1])[0]
+#         m, n = list(P0[i1])[1]
+#         if i + j == m + n:
+#             x = np.zeros(p,)
+#             x[i] = x[i] + 1
+#             x[j] = x[j] + 1
+#             x[m] = x[m] - 1
+#             x[n] = x[n] - 1
+#             A.append(x)
+#             eq_id = eq_id + 1
 
-    A = np.array(A).astype(int)
+#     A = np.array(A).astype(int)
 
-    # P0(D)
-    P0D_id = []
+#     # P0(D)
+#     P0D_id = []
 
-    #----------Predict testing accuracy with Parallelogram set-------------#
-    ii = 0
-    for i in range(all_num):
-        for j in range(i + 1, all_num):
-            if np.sum(pairs[i]) == np.sum(pairs[j]):
-                if i in train_id and j in train_id:
-                    P0D_id.append(ii)
-                ii += 1
+#     #----------Predict testing accuracy with Parallelogram set-------------#
+#     ii = 0
+#     for i in range(all_num):
+#         for j in range(i + 1, all_num):
+#             if np.sum(pairs[i]) == np.sum(pairs[j]):
+#                 if i in train_id and j in train_id:
+#                     P0D_id.append(ii)
+#                 ii += 1
 
-    P0D = []
-    for i in P0D_id:
-        P0D.append(P0[i])
+#     P0D = []
+#     for i in P0D_id:
+#         P0D.append(P0[i])
 
-    # P0D_c
-    P0D_c_id = set(P0_id) - set(P0D_id)
+#     # P0D_c
+#     P0D_c_id = set(P0_id) - set(P0D_id)
 
-    # PD
-    PD_id = []
+#     # PD
+#     PD_id = []
 
-    for i in P0D_c_id:
-        P0D_id_aug = copy.deepcopy(P0D_id)
-        P0D_id_aug.append(i)
-        P0D_aug = []
-        for j in P0D_id_aug:
-            P0D_aug.append(P0[j])
-        null_dim_1 = np.sum(np.linalg.eigh(
-            np.matmul(np.transpose(A[P0D_id]), A[P0D_id]))[0] < 1e-8)
-        null_dim_2 = np.sum(np.linalg.eigh(
-            np.matmul(np.transpose(A[P0D_id_aug]), A[P0D_id_aug]))[0] < 1e-8)
-        if null_dim_1 == null_dim_2:
-            PD_id.append(i)
+#     for i in P0D_c_id:
+#         P0D_id_aug = copy.deepcopy(P0D_id)
+#         P0D_id_aug.append(i)
+#         P0D_aug = []
+#         for j in P0D_id_aug:
+#             P0D_aug.append(P0[j])
+#         null_dim_1 = np.sum(np.linalg.eigh(
+#             np.matmul(np.transpose(A[P0D_id]), A[P0D_id]))[0] < 1e-8)
+#         null_dim_2 = np.sum(np.linalg.eigh(
+#             np.matmul(np.transpose(A[P0D_id_aug]), A[P0D_id_aug]))[0] < 1e-8)
+#         if null_dim_1 == null_dim_2:
+#             PD_id.append(i)
 
-    PD_id = PD_id + P0D_id
+#     PD_id = PD_id + P0D_id
 
-    PD = []
-    for i in PD_id:
-        PD.append(P0[i])
+#     PD = []
+#     for i in PD_id:
+#         PD.append(P0[i])
 
-    RQI_ideal = len(PD) / P0_num  # This is ideal RQI
+#     RQI_ideal = len(PD) / P0_num  # This is ideal RQI
 
-    # Dbar(D)
-    Dbar_id = list(copy.deepcopy(train_id))
+#     # Dbar(D)
+#     Dbar_id = list(copy.deepcopy(train_id))
 
-    for i1 in test_id:
-        flag = 0
-        for j1 in train_id:
-            i, j = pairs[i1]
-            m, n = pairs[j1]
-            if {(i, j), (m, n)} in PD:
-                flag = 1
-                break
-        if flag == 1:
-            Dbar_id.append(i1)
+#     for i1 in test_id:
+#         flag = 0
+#         for j1 in train_id:
+#             i, j = pairs[i1]
+#             m, n = pairs[j1]
+#             if {(i, j), (m, n)} in PD:
+#                 flag = 1
+#                 break
+#         if flag == 1:
+#             Dbar_id.append(i1)
 
-    # accuracy in the ideal case. acc_ideal: the whole dataset; acc_ideal_test: only testing set.
-    acc_ideal = len(Dbar_id) / all_num
-    num_generalize = len(Dbar_id) - len(train_id)
-    acc_ideal_test = num_generalize / len(test_id)
-    return num_generalize, len(test_id), acc_ideal_test
+#     # accuracy in the ideal case. acc_ideal: the whole dataset; acc_ideal_test: only testing set.
+#     acc_ideal = len(Dbar_id) / all_num
+#     num_generalize = len(Dbar_id) - len(train_id)
+#     acc_ideal_test = num_generalize / len(test_id)
+#     return num_generalize, len(test_id), acc_ideal_test
 
 
 # --------------------------
@@ -238,12 +244,11 @@ def ideal_test_acc(train_id, test_id, p):
 # /___\  |o___O__|
 # --------------------------
 @ex.automain
-def run(p,
+def run(n,
         symbol_rep_dim,
         train_fraction,
         encoder_width,
         encoder_depth,
-        hidden_rep_dim,
         decoder_width,
         decoder_depth,
         activation_fn,
@@ -265,16 +270,15 @@ def run(p,
     np.random.seed(seed)
 
     # Define data set
-
+    p = math.factorial(n)
     latent = dict()
-
-    latent_tensor = latent_init_scale * torch.randn(p, hidden_rep_dim).to(device)
+    latent_tensor = latent_init_scale * torch.randn(p, n*n).to(device)
     latent_tensor.requires_grad = True
     for i in range(p):
         latent[i] = latent_tensor[i:i + 1]
 
     symbol_reps = dict()
-    for i in range(2 * p - 1):
+    for i in range(p):
         symbol_reps[i] = torch.randn((1, symbol_rep_dim)).to(device)
 
     def get_i_from_rep(rep, symbol_reps):
@@ -283,11 +287,16 @@ def run(p,
             if torch.all(rep == candidate_rep):
                 return i
 
+    G = SymmetricGroup(n)
+    g_list = list(G.elements)
+    i_to_g = dict((i, g) for i, g in enumerate(g_list))
+    g_to_i = dict((g, i) for i, g in enumerate(g_list))
+
     table = dict()
-    pairs = [(i, j) for (i, j) in product(range(p), range(p)) if i <= j]
+    pairs = [(i, j) for (i, j) in product(range(p), range(p))]
     all_num = len(pairs)
     for (i, j) in pairs:
-        table[(i, j)] = (i + j)
+        table[(i, j)] = g_to_i[i_to_g[i] * i_to_g[j]]
     train_id = random.sample(
         list(np.arange(len(pairs))),
         int(len(pairs) * train_fraction))
@@ -296,8 +305,8 @@ def run(p,
     test_pairs = [pairs[i] for i in test_id]
 
     # compute ideal test accuracy
-    num_generalize, test_size, acc_ideal_test = ideal_test_acc(train_id, test_id, p)
-    print("ideal test accuracy={}/{}={}".format(num_generalize, test_size, acc_ideal_test))
+    # num_generalize, test_size, acc_ideal_test = ideal_test_acc(train_id, test_id, p)
+    # print("ideal test accuracy={}/{}={}".format(num_generalize, test_size, acc_ideal_test))
 
     train_data = (
         torch.cat([torch.cat((latent[i], latent[j]), dim=1) for i, j in train_pairs], dim=0),
@@ -311,7 +320,7 @@ def run(p,
     # initialize model
     model = ToyModel(
         digit_rep_dim=symbol_rep_dim,
-        internal_rep_dim=hidden_rep_dim,
+        internal_rep_dim=n*n,
         encoder_width=encoder_width,
         encoder_depth=encoder_depth,
         decoder_width=decoder_width,

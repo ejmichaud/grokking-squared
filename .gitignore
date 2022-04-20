@@ -212,3 +212,7 @@ cython_debug/
 #.idea/
 
 # End of https://www.toptal.com/developers/gitignore/api/linux,macos,python,jupyternotebooks
+runs_*
+plots
+*.mp4
+runs

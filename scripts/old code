@@ -1,0 +1,59 @@
+old code
+# fig, ax = plt.subplots()
+# text = ax.text(0.01, 1.01, "", fontsize=12, transform=ax.transAxes)
+# sc = []
+# for i in range(args.p):
+#     sc.append(plt.scatter(i, 0, marker=f"${i}$"))
+
+# def init():
+#     ax.set_xlim(-5, 5)
+#     ax.set_ylim(-5, 6)
+#     return *sc, text
+
+# plot_every = args.plot
+
+# def update(frame):
+#     for i in range(plot_every):
+#         test_loss, test_acc, train_loss, train_acc = next_step()
+#     offsets = representation.detach().cpu().numpy()
+#     ax.set_xlim(offsets.min() - 1, offsets.max() + 1)
+#     if args.latent_dim == 1:
+#         [s.set_offsets((offsets[i], i)) for i, s in enumerate(sc)]
+#         ax.set_ylim(- 1, args.p)
+#     else:
+#         [s.set_offsets(offsets[i]) for i, s in enumerate(sc)]
+#         ax.set_ylim(offsets.min() - 1, offsets.max() + 1)
+#         # offsets = np.concatenate([offsets, np.zeros((args.p, 1))], axis=1)
+#     epoch = plot_every * (frame + 1)
+#     string1 = f"Epoch {epoch} | Loss {train_loss:.2e}|{test_loss:.2e}"
+#     string2 = f"Acc {train_acc:.2f}|{test_acc:.2f}"
+#     text.set_text(string1 + string2)
+#     return *sc, text
+
+# ani = FuncAnimation(fig, update, frames=args.epochs // plot_every,
+#                     init_func=init, blit=False, repeat=False)
+# plt.show()
+# ani.save(f"plots/{logdir}anim.mp4", writer="ffmpeg", fps=10)
+# test_loss, test_acc, *_ = next_step()
+
+
+good nums
+        # default = {
+        #     'lr_rep': 0.0972107092542222, 'lr_decoder': 0.00050394908359430003,
+        #     'weight_decay': 0.0, 'dropout': 0.0,
+        #     'decoder_width': 256}
+        # Imediate generalization for non-modular
+        # default = {
+        #     'lr_rep': 0.03972107092542222, 'lr_decoder': 0.00020394908359430003,
+        #     'weight_decay': 0.008576174939782577, 'dropout': 0.0,
+        #     'decoder_width': 87}
+        # or
+        #     default = {
+        # 'lr_rep': 0.03972107092542222, 'lr_decoder': 0.00020394908359430003,
+        # 'weight_decay': 0.0, 'dropout': 0.0,
+        # 'decoder_width': 87}
+        # {'lr_rep': 0.09746690863191798, 'lr_decoder': 0.02597185786022198,
+        #     'weight_decay': 0.0013478529747256037, 'dropout': 0.007315054863848385,
+        #  'decoder_width': 21}
+        # for k, v in default.items():
+        #     args.__dict__[k] = v

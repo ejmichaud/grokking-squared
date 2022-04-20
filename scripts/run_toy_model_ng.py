@@ -5,11 +5,8 @@ This script performs a training run on the toy model. There are
 lots of options for configuration.
 """
 
-from collections import defaultdict
-from itertools import islice, product
+from itertools import product
 import random
-import time
-from pathlib import Path
 
 import numpy as np
 from tqdm.auto import tqdm

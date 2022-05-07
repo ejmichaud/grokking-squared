@@ -1,24 +1,17 @@
-import numpy as np
-np.random.seed(0)
+# read hparams from event file
+from tbparse import SummaryReader
+import torch
 
+model = torch.nn.Sequential(
+    torch.nn.Linear(2, 1),
+    torch.nn.Sigmoid()
+)
 
-ngratings = 10
-nwaves = 3
-gratings = np.random.randn(nwaves, ngratings, 2, 2)
+torch.save(model, "model.pt")
 
-waves = []
-for wave in gratings:
-    out = np.einsum('ijk,jmn,->', wave, wave, wave)
-    waves.append(out)
-print(out)
+blah = torch.load("model.pt")
 
-print("____________________________________________________")
-waves = []
-for i in range(nwaves):
-    wave = np.eye(2)
-    for grat in gratings[i, :, :, :]:
-        wave = wave @ grat 
-    waves.append(wave)
-waves = np.array(waves)
-
-print(waves)
+print(blah)
+print(model)
+print(model == blah)
+breakpoint()

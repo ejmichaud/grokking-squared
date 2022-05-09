@@ -7,7 +7,6 @@ import time
 import os
 from torch.utils.tensorboard import SummaryWriter
 from matplotlib import pyplot as plt
-from celluloid import Camera
 import torch
 from tensorboard.backend.event_processing import event_accumulator
 from matplotlib.markers import MarkerStyle
@@ -84,9 +83,8 @@ class Logger:
         self._timestamp = time.strftime("%m%d-%H%M%S") if timestamp else ""
         path = os.path.abspath(os.path.dirname(__file__))
         self.root_path = '/'.join(path.split('/')[:-2])
-        runs_path = os.path.join(self.root_path, 'runs')
         self.experiment_dir = os.path.join(experiment, self._timestamp)
-        self.log_path = os.path.join(runs_path, self.experiment_dir)
+        self.log_path = os.path.join(self.root_path, self.experiment_dir)
         self.args = args
         self.epoch = 0
         self.plot_ready = False
@@ -94,7 +92,7 @@ class Logger:
         self.writer = None
         self.debug = args.debug if args is not None else debug
         if not self.debug:
-            self.log_every = args.log_every if args is not None else log_every
+            self.log_every = args.log if args is not None else log_every
         else:
             self.log_every = 0
         self.save_weights = args.save_weights if args is not None else save_weights
@@ -153,6 +151,7 @@ class Logger:
             plt.close("all")
 
     def plot_embedding(self, embedding, metrics=None, epoch=None):
+        from celluloid import Camera
         if not self.plot_ready:
             # Make a figure
             self.fig = plt.figure(figsize=(16, 10))

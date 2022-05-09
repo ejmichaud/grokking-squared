@@ -97,6 +97,9 @@ def main():
             if epoch == args.epochs - 1:
                 logger.plot_embedding(representation.detach(), metrics, epoch)
                 logger.save_anim("bruv2")
+        # stop early if the accuracy is over 99.9%
+        if acc_test > 0.999:
+          break
 
     logger.close()
     return loss_test, acc_test

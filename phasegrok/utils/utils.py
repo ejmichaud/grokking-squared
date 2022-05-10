@@ -45,9 +45,11 @@ def standardize(x):
     return (x - x.mean(axis=1).reshape(-1, 1)) / x.std(axis=1).reshape(-1, 1)
 
 
-def get_loss(loss):
+def get_loss(loss, n_classes=None):
     if loss == "mse":
-        loss_func = torch.nn.functional.mse_loss
+        def loss_func(pred, target ,**kwargs):
+          return torch.nn.functional.mse_loss(pred, torch.nn.functional.one_hot(
+                target, n_classes).float(), **kwargs)
     elif loss == "cross_entropy":
         loss_func = torch.nn.functional.cross_entropy
     else:

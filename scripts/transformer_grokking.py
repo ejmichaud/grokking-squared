@@ -6,14 +6,19 @@ from tqdm import tqdm
 from torchmetrics.functional import accuracy
 from phasegrok.utils import Logger, get_loss
 from phasegrok.utils.modDivide import modDivide
+from phasegrok.esam import ESAM
 import os
-import optuna 
+import optuna
 
 # args is the configuration environment. The defaults are in config.py
 
-pairs, train_indices, test_indices, _ = generate_data(args.p, args.seed, args.split_ratio,
-                                                      ignore_symmetric=False,
-                                                      batch_size=args.batch_size)
+pairs, train_indices, test_indices, _ = generate_data(
+    args.p,
+    args.seed,
+    args.split_ratio,
+    ignore_symmetric=False,
+    batch_size=args.batch_size,
+)
 # modular division
 # nums = torch.arange(args.p) + 1
 # Y = torch.from_numpy(modDivide(nums, nums.view(-1, 1), args.m))
@@ -26,55 +31,69 @@ Y = nums + nums.view(-1, 1)
 Y = Y % args.m if args.m > 1 else Y
 Y = Y.long().to(args.device)
 
+
 def main():
     torch.manual_seed(args.seed)
-    representation = torch.randn(args.p, args.latent_dim).to(
-        args.device).requires_grad_()
+    representation = (
+        torch.randn(args.p, args.latent_dim).to(args.device).requires_grad_()
+    )
     out_classes = args.m if args.m > 1 else 2 * args.p - 1
-    model = Decoder(input_dim=args.latent_dim, output_dim=out_classes,
-                    w=args.decoder_width, depth=args.decoder_depth,
-                    concat=True, dropout=args.dropout).to(args.device)
+    model = Decoder(
+        input_dim=args.latent_dim,
+        output_dim=out_classes,
+        w=args.decoder_width,
+        depth=args.decoder_depth,
+        concat=True,
+        dropout=args.dropout,
+    ).to(args.device)
 
-
-    param_groups = [{"params": (representation, ), "lr": args.lr_rep},
-                    {"params": model.parameters(), "lr": args.lr_decoder,
-                    "weight_decay": args.weight_decay}]
+    param_groups = [
+        {"params": (representation,), "lr": args.lr_rep},
+        {
+            "params": model.parameters(),
+            "lr": args.lr_decoder,
+            "weight_decay": args.weight_decay,
+        },
+    ]
 
     optimizer = torch.optim.AdamW(param_groups)
-    loss_func = get_loss(args.loss)
+    if args.use_esam:
+        optimizer = ESAM(param_groups, optimizer, rho=args.esam_rho,)
+    loss_func = get_loss(args.loss, out_classes)
 
     print(args)
 
-
-    def step(idx):
+    def step(idx, train: bool):
         x = representation[idx]
         pred = model(x)
         target = Y[idx[:, 0], idx[:, 1]]
-        if loss_func == torch.nn.functional.mse_loss:
-            # pred = pred.softmax(1)
-            loss = loss_func(pred, torch.nn.functional.one_hot(
-                target, out_classes).float())
-        else:
-            loss = loss_func(pred, target)
+        loss = loss_func(pred, target)
         acc = accuracy(pred, target)
-        return loss, acc
 
+        if train:
+            loss.backward()
+            if args.use_esam:
+                loss_fn = lambda x, y: loss_func(x, y, reduction="none")
+                defined_bkwrd = lambda l: l.backward()
+                optimizer.step(x, target, loss_fn, model, defined_bkwrd)
+            else:
+                optimizer.step()
+
+        return loss, acc
 
     pbar = tqdm(range(args.epochs))
     logger = Logger(args, experiment=f"{args.exp_name}", timestamp=True)
-        
+
     for epoch in pbar:
         model.train()
         metrics = {}
         for idx, *_ in train_indices:
             optimizer.zero_grad()
-            loss_train, acc_train = step(idx)
-            loss_train.backward()
-            optimizer.step()
+            loss_train, acc_train = step(idx, True)
         with torch.no_grad():
             model.eval()
             for idx, *_ in test_indices:
-                loss_test, acc_test = step(idx)
+                loss_test, acc_test = step(idx, False)
 
         # logging
         msg = f"Loss {loss_train.item():.2e}|{loss_test.item():.2e} || "
@@ -82,8 +101,12 @@ def main():
         pbar.set_description(msg)
 
         # Logging metrics and embeddings
-        metrics = {"loss/train": loss_train.item(), "loss/test": loss_test.item(),
-                "acc/train": acc_train, "acc/test": acc_test}
+        metrics = {
+            "loss/train": loss_train.item(),
+            "loss/test": loss_test.item(),
+            "acc/train": acc_train,
+            "acc/test": acc_test,
+        }
         logger.log(metrics, weights=representation.data, ckpt=model.state_dict())
         # if epoch == 0:
         #     if args.save_ckpt:
@@ -99,7 +122,7 @@ def main():
                 logger.save_anim("bruv2")
         # stop early if the accuracy is over 99.9%
         if acc_test > 0.999:
-          break
+            break
 
     logger.close()
     return loss_test, acc_test
@@ -107,6 +130,7 @@ def main():
 
 if __name__ == "__main__":
     if args.tune:
+
         def objective(trial):
             # args.__dict__["lr_rep"] = trial.suggest_loguniform("lr_rep", 1e-5, 1e-1)
             # args.__dict__["lr_decoder"] = trial.suggest_loguniform(

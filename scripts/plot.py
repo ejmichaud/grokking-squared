@@ -14,7 +14,6 @@ from tensorboard.backend.event_processing import event_accumulator
 from argparse import ArgumentParser
 from itertools import product
 from phasegrok.utils.utils import standardize, read_scalars, make_path
-from tbparse import SummaryReader
 
 parser = ArgumentParser()
 parser.add_argument("--which", type=str, default="both",

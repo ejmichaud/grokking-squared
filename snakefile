@@ -1,12 +1,6 @@
 from pytools.persistent_dict import PersistentDict
 from time import sleep
-import numpy as np
-
-class Ranges:
-  weight_decay = list(np.exp(np.linspace(-4, 2, 19)))
-  dropout = np.linspace(0, .5, 10)
-  decoder_lr = list(10**np.linspace(-6, -3, 12))
-  esam_rho = list(np.exp(np.linspace(-4, 1, 9)))
+from phasegrok.definitions import Ranges, Locations
 
 gpu_jobs = PersistentDict("jobs")
 
@@ -48,20 +42,13 @@ def train_cmd(
         ]
     )
 
-class Locations:
-  weight_decay = "runs/weight_decay_{wd}_seed_{seed}"
-  dropout = "runs/dropout_{do}_seed_{seed}"
-  slow_decoder = "runs/decoder_lr_{lr}_seed_{seed}"
-  esam = "runs/esam_rho_{rho}_beta_{beta}_seed_{seed}"
-  weight_decay_vs_decoder_lr = "runs/phaseplot_weight_decay_{wd}_decoder_lr_{lr}_seed_{seed}"
-
 rule all:
   input:
-    expand(Locations.weight_decay, wd=Ranges.weight_decay, seed=[1,2,3]),
-    expand(Locations.dropout, do=Ranges.dropout, seed=[1,2,3]),
-    expand(Locations.slow_decoder, lr=Ranges.decoder_lr, seed=[1,2,3]),
-    # expand(Locations.esam, rho=esam_rhos, beta=[.5, 1], seed=[1,2,3]),
-    # expand(Locations.weight_decay_vs_decoder_lr, wd=weight_decays_phaseplot, lr=decoder_lrs_phaseplot, seed=[1]),
+    expand(Locations.weight_decay, wd=Ranges.weight_decay, seed=Ranges.seed),
+    expand(Locations.dropout, do=Ranges.dropout, seed=Ranges.seed),
+    expand(Locations.slow_decoder, lr=Ranges.decoder_lr, seed=Ranges.seed),
+    # expand(Locations.esam, rho=esam_rhos, beta=[.5, 1], seed=Ranges.seed),
+    # expand(Locations.weight_decay_vs_decoder_lr, wd=Ranges.weight_decay, lr=Ranges.decoder_lr, seed=[1]),
 
 
 rule with_weight_decay:
@@ -97,4 +84,4 @@ rule weight_decay_vs_decoder_lr:
     logs = directory(Locations.weight_decay_vs_decoder_lr)
   run:
     cmd = train_cmd(weight_decay=wildcards.wd, decoder_lr=wildcards.lr, seed=wildcards.seed)
-    run_on_free_gpu(cmd + f" --exp_name {output.logs} --train_data_pct=80 --max_epochs=10000")
+    run_on_free_gpu(cmd + f" --exp_name {output.logs}")

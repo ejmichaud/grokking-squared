@@ -33,7 +33,7 @@ parser.add_argument('--stop_early', action='store_true', default=False)
 
 # esam
 parser.add_argument('--use_esam', action='store_true', default=False)
-parser.add_argument('--esam_rho', default=1, type=float)
+parser.add_argument('--esam_rho', default=.05, type=float)
 
 
 # args, unknown = parser.parse_known_args()

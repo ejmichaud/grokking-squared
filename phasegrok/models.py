@@ -73,6 +73,15 @@ class Decoder(nn.Module):
             x = x.sum(-2)
         return self.net(x)
 
+class Transformer(nn.Module):
+    def __init__(self, vocab_len, embedding_dim, output_dim, w=200, concat=False, dropout=0, depth=1):
+      super(Transformer, self).__init__()
+      self.embedding = nn.Embedding(vocab_len, embedding_dim)
+      self.decoder = Decoder(embedding_dim, output_dim, w, concat, dropout, depth)
+    
+    def forward(self, x):
+      return self.decoder(self.embedding(x))
+
 
 class NET(nn.Module):  # base MLP model
     def __init__(self, input_dim, output_dim, w=200):

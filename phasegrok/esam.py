@@ -16,7 +16,6 @@ class ESAM(torch.optim.Optimizer):
         for group in self.param_groups:
             group["rho"] = rho
             group["adaptive"] = adaptive
-        self.paras = None
 
     @torch.no_grad()
     def first_step(self, zero_grad=False):
@@ -53,12 +52,10 @@ class ESAM(torch.optim.Optimizer):
 
         if zero_grad: self.zero_grad()
 
-    def step(self, inputs, targets, loss_fct, model, defined_backward):
-        assert defined_backward is not None, "Sharpness Aware Minimization requires defined_backward, but it was not provided"
+    def step(self, inputs, targets, loss_fct, model):
 
         model.require_backward_grad_sync = False
         model.require_forward_param_sync = True
-
 
         logits = model(inputs)
         loss = loss_fct(logits,targets)
@@ -67,7 +64,7 @@ class ESAM(torch.optim.Optimizer):
         predictions = logits
         return_loss = loss.clone().detach()
         loss = loss.mean()
-        defined_backward(loss)
+        loss.backward()
 
         #first step to w + e(w)
         self.first_step(True)
@@ -92,15 +89,11 @@ class ESAM(torch.optim.Optimizer):
                 indices = [instance_sharpness > cutoff] 
 
 
-        # second forward-backward step
-        # self.first_half()
-
         model.require_backward_grad_sync = True
         model.require_forward_param_sync = False
-
         loss = loss_fct(model(inputs[indices]), targets[indices])
         loss = loss.mean()
-        defined_backward(loss)
+        loss.backward()
         self.second_step(True)
 
         return (predictions,return_loss)

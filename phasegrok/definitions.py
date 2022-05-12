@@ -13,5 +13,5 @@ class Locations:
   weight_decay = "runs/weight_decay_{wd}_seed_{seed}"
   dropout = "runs/dropout_{do}_seed_{seed}"
   slow_decoder = "runs/decoder_lr_{lr}_seed_{seed}"
-  esam = "runs/esam_rho_{rho}_beta_{beta}_seed_{seed}"
+  esam = "runs/esam_rho_{rho}_seed_{seed}"
   weight_decay_vs_decoder_lr = "runs/phaseplot_weight_decay_{wd}_decoder_lr_{lr}_seed_{seed}"

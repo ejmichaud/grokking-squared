@@ -47,8 +47,8 @@ rule all:
     expand(Locations.weight_decay, wd=Ranges.weight_decay, seed=Ranges.seed),
     expand(Locations.dropout, do=Ranges.dropout, seed=Ranges.seed),
     expand(Locations.slow_decoder, lr=Ranges.decoder_lr, seed=Ranges.seed),
-    # expand(Locations.esam, rho=esam_rhos, beta=[.5, 1], seed=Ranges.seed),
-    # expand(Locations.weight_decay_vs_decoder_lr, wd=Ranges.weight_decay, lr=Ranges.decoder_lr, seed=[1]),
+    expand(Locations.esam, rho=Ranges.esam_rho, seed=Ranges.seed),
+    expand(Locations.weight_decay_vs_decoder_lr, wd=Ranges.weight_decay, lr=Ranges.decoder_lr, seed=[1]),
 
 
 rule with_weight_decay:
@@ -76,8 +76,8 @@ rule with_esam:
   output:
     logs = directory(Locations.esam)
   run:
-    cmd = train_cmd(esam_rho=wildcards.rho, esam_beta=wildcards.beta, seed=wildcards.seed)
-    run_on_free_gpu(cmd + f" --esam --exp_name {output.logs}")
+    cmd = train_cmd(esam_rho=wildcards.rho, seed=wildcards.seed)
+    run_on_free_gpu(cmd + f" --use_esam --exp_name {output.logs}")
 
 rule weight_decay_vs_decoder_lr:
   output:

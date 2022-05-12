@@ -7,7 +7,6 @@ from torchmetrics.functional import accuracy
 from phasegrok.utils import Logger, get_loss
 from phasegrok.utils.modDivide import modDivide
 from phasegrok.esam import ESAM
-import os
 import optuna
 
 # args is the configuration environment. The defaults are in config.py
@@ -34,23 +33,24 @@ Y = Y.long().to(args.device)
 
 def main():
     torch.manual_seed(args.seed)
-    representation = (
-        torch.randn(args.p, args.latent_dim).to(args.device).requires_grad_()
-    )
     out_classes = args.m if args.m > 1 else 2 * args.p - 1
-    model = Decoder(
+    model = torch.nn.Sequential(
+      torch.nn.Embedding(args.p, args.latent_dim),
+      Decoder(
         input_dim=args.latent_dim,
         output_dim=out_classes,
         w=args.decoder_width,
         depth=args.decoder_depth,
         concat=True,
         dropout=args.dropout,
+      )
     ).to(args.device)
+    
 
     param_groups = [
-        {"params": (representation,), "lr": args.lr_rep},
+        {"params": model[0].parameters(), "lr": args.lr_rep},
         {
-            "params": model.parameters(),
+            "params": model[1].parameters(),
             "lr": args.lr_decoder,
             "weight_decay": args.weight_decay,
         },
@@ -64,22 +64,20 @@ def main():
     print(args)
 
     def step(idx, train: bool):
-        x = representation[idx]
-        pred = model(x)
+        pred = model(idx)
         target = Y[idx[:, 0], idx[:, 1]]
-        loss = loss_func(pred, target)
         acc = accuracy(pred, target)
+        loss = loss_func(pred, target)
 
         if train:
-            loss.backward()
             if args.use_esam:
                 loss_fn = lambda x, y: loss_func(x, y, reduction="none")
-                defined_bkwrd = lambda l: l.backward()
-                optimizer.step(x, target, loss_fn, model, defined_bkwrd)
+                optimizer.step(idx, target, loss_fn, model)
             else:
+                loss.backward()
                 optimizer.step()
 
-        return loss, acc
+        return loss.detach(), acc
 
     pbar = tqdm(range(args.epochs))
     logger = Logger(args, experiment=f"{args.exp_name}", timestamp=True)
@@ -89,11 +87,11 @@ def main():
         metrics = {}
         for idx, *_ in train_indices:
             optimizer.zero_grad()
-            loss_train, acc_train = step(idx, True)
+            loss_train, acc_train = step(idx.to(args.device), True)
         with torch.no_grad():
             model.eval()
             for idx, *_ in test_indices:
-                loss_test, acc_test = step(idx, False)
+                loss_test, acc_test = step(idx.to(args.device), False)
 
         # logging
         msg = f"Loss {loss_train.item():.2e}|{loss_test.item():.2e} || "
@@ -107,7 +105,7 @@ def main():
             "acc/train": acc_train,
             "acc/test": acc_test,
         }
-        logger.log(metrics, weights=representation.data, ckpt=model.state_dict())
+        logger.log(metrics, weights=model[0].weight, ckpt=model.state_dict())
         # if epoch == 0:
         #     if args.save_ckpt:
         #         torch.save(model.cpu(), os.path.join(logger.log_path, "model.pt"))
@@ -116,12 +114,12 @@ def main():
         # Plotting embeddings
         if args.plot > 0:
             if epoch % args.plot == 0:
-                logger.plot_embedding(representation.detach(), metrics, epoch)
+                logger.plot_embedding(model[0].weight.detach(), metrics, epoch)
             if epoch == args.epochs - 1:
-                logger.plot_embedding(representation.detach(), metrics, epoch)
+                logger.plot_embedding(model[0].weight.detach(), metrics, epoch)
                 logger.save_anim("bruv2")
         # stop early if the accuracy is over 99.9%
-        if acc_test > 0.999:
+        if args.stop_early and acc_test > 0.999:
             break
 
     logger.close()

@@ -81,5 +81,5 @@ else:
   plt.legend(loc="best")
 
 plt.tight_layout()
-plt.show()
-#plt.savefig(f"generalization_time_{sys.argv[1]}.pdf")
+#plt.show()
+plt.savefig(f"generalization_time_{sys.argv[1]}.pdf")

@@ -40,17 +40,16 @@ def main():
     torch.manual_seed(args.seed)
     out_classes = args.m if args.m > 1 else 2 * args.p - 1
     model = torch.nn.Sequential(
-      torch.nn.Embedding(args.p, args.latent_dim),
-      Decoder(
-        input_dim=args.latent_dim,
-        output_dim=out_classes,
-        w=args.decoder_width,
-        depth=args.decoder_depth,
-        concat=True,
-        dropout=args.dropout,
-      )
+        torch.nn.Embedding(args.p, args.latent_dim),
+        Decoder(
+            input_dim=args.latent_dim,
+            output_dim=out_classes,
+            w=args.decoder_width,
+            depth=args.decoder_depth,
+            concat=True,
+            dropout=args.dropout,
+        ),
     ).to(args.device)
-    
 
     param_groups = [
         {"params": model[0].parameters(), "lr": args.lr_rep},
@@ -63,7 +62,11 @@ def main():
 
     optimizer = torch.optim.AdamW(param_groups)
     if args.use_esam:
-        optimizer = ESAM(param_groups, optimizer, rho=args.esam_rho,)
+        optimizer = ESAM(
+            param_groups,
+            optimizer,
+            rho=args.esam_rho,
+        )
     loss_func = get_loss(args.loss, out_classes)
 
     print(args)
@@ -85,7 +88,7 @@ def main():
         return loss.detach(), acc
 
     pbar = tqdm(range(args.epochs))
-    logger = Logger(args, experiment=f"{args.exp_name}", timestamp=True)
+    logger = Logger(args, experiment=f"{args.exp_name}", timestamp=True, model=model)
 
     for epoch in pbar:
         model.train()
@@ -149,12 +152,12 @@ if __name__ == "__main__":
         study = optuna.create_study(direction="maximize")
         study.optimize(objective, n_trials=args.tune)
         print("_________________________________________" * 2)
-        print("Done! Now training:")
-        print(study.best_params)
+        # print("Done! Now training:")
+        # print(study.best_params)
         # for k, v in study.best_params.items():
         #     args.__dict__[k] = v
         # args.__dict__["epochs"] = 100000
         # args.__dict__["no-log"] = False
-        main()
+        # main()
     else:
         main()

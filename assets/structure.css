@@ -1,0 +1,122 @@
+html, body {
+	width: 100%;
+	height: 100%;
+	padding: 0;
+	margin: 0;
+	font-family: "Avenir Next", "Helvetica Neue", sans-serif;
+	display: flex;
+	flex-direction: column;
+    background-color: #F6F5F1;
+}
+
+.content {
+	-ms-text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+	text-align: left;
+	font-size: 16px;
+	line-height: 1.5;
+	word-wrap: break-word;
+	box-sizing: border-box;
+	/* min-width: 200px; */
+	max-width: 750px;
+	margin: 0 auto;
+	padding: 20px 45px;
+	flex: 1.2 0 auto;
+}
+
+.content img {
+    display: block;
+    margin: 0 auto;
+    border-radius: 7px;
+    width: 99%;
+    height: auto;
+    border: 2px solid black;
+}
+
+.content quote {
+    display: block;
+    font-style: italic;
+    margin: 0 auto;
+    width: 80%
+}
+
+.content h1 {
+    text-align: center;
+}
+
+.preview {
+    border-radius: 4px;
+    border-style: solid;
+    border-color: grey;
+    border-style: double;
+    width: 80%;
+    margin: 20px auto;
+    padding: 10px;
+    display: block;
+
+    position: relative;
+}
+
+.preview img {
+    border: 1px solid grey;
+}
+
+.preview:hover {
+    /* color: grey; */
+    border-color: red;
+    opacity: 0.55;
+}
+
+.filllink { 
+    position:absolute; 
+    width:100%;
+    height:100%;
+    top:0;
+    left: 0;
+  
+    z-index: 1;
+  
+    /* fixes overlap error in IE7/8, 
+       make sure you have an empty gif */
+    background-image: url('empty.gif');
+  }
+
+
+.navbar ul {
+    list-style-type: none;
+    margin: -8px 0;
+    padding: 0;
+    text-align: center;
+    font-size: 24px;; 
+}
+
+.navbar ul li {
+    /* font-size: 18px; */
+    /* color: black; */
+/*    padding: 14px 16px;*/
+    /* text-decoration: none; */
+	/* display: inline-block; */
+    display: inline-block;
+    padding: 0 5px;
+    border-style: double;
+    border-radius: 3px;
+    margin: 0 5px;
+}
+
+.navbar li div {
+    position: relative;
+}
+
+.navbar ul li:hover {
+    color: grey;
+    border-color: red;
+}
+
+#bar {
+    display: inline-block;
+    width: 100%;
+    height: 2px;
+    background-color: black;
+    margin: 0px;
+    padding: 0px;
+}

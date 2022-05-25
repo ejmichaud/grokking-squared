@@ -18,7 +18,7 @@
 
 
 <head>
-    <title></title>
+    <title>Thoughts on Grokking</title>
     
     <!--------------------------------------------------
                 Import and Define CSS Things!
@@ -42,7 +42,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0/contrib/auto-render.min.js" integrity="sha384-IiI65aU9ZYub2MY9zhtKd1H2ps7xxf+eb2YFG9lX6uRqpXCvBTOidPRCXCrQ++Uc" crossorigin="anonymous"></script>
     <script>
     document.addEventListener("DOMContentLoaded", function() {
-      renderMathInElement(document.body);
+      renderMathInElement(document.body,
+            {
+              delimiters: [
+                  {left: "$$", right: "$$", display: true},
+                  {left: "\\[", right: "\\]", display: true},
+                  {left: "$", right: "$", display: false},
+                  {left: "\\(", right: "\\)", display: false}
+              ]
+            }
+      );
     });
     </script>
 </head>
@@ -56,10 +65,114 @@
 -------------------------->
 <div class="content"> 
 
-<h1>Towards Understanding Grokking</h1>
+<h1>Understanding <i>grokking</i> in terms of representation learning dynamics <div style=color:red;>[in progress]</div></h1>
+
+<subtitle>
+    This post accompanies the preprint <a href="https://arxiv.org/abs/2205.10343">Towards Understanding 
+        Grokking: An Effective Theory of Representation Learning</a>, by <a href="https://kindxiaoming.github.io/">Ziming
+            Liu</a>, <a href="https://okitouni.github.io/">Ouail Kitouni</a>, <a href="https://nolte.dev/">Niklas Nolte</a>, 
+            <a href="https://ericjmichaud.com">Eric J. Michaud</a>, <a href="https://space.mit.edu/home/tegmark/">Max Tegmark</a>, 
+            and <a href="https://physics.mit.edu/faculty/michael-williams/">Mike Williams</a>. It aims to be a bit pedagogically
+            friendlier than the full paper and also includes some videos and additional discussion. It was written mostly by Eric.
+</subtitle>
 
 <p>
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque porta, nibh nec euismod finibus, justo enim vulputate lacus, eu posuere sapien enim ut sapien. Duis quis odio consectetur, feugiat ex eu, tempus orci. Quisque suscipit, metus sit amet volutpat imperdiet, nisl nisi tincidunt lectus, a aliquam ligula eros eget augue. Nam viverra ut ipsum vitae fermentum. Curabitur egestas tortor risus, eu sagittis tortor aliquet tempor. Phasellus in lacus at ipsum rhoncus facilisis quis sed mi. Donec at faucibus risus. Pellentesque elit magna, ornare ac lorem eu, pulvinar laoreet enim.
+Last year, some researchers at OpenAI released a short paper called 
+    <a href="https://arxiv.org/abs/2201.02177">Grokking: Generalization Beyond Overfitting on 
+    Small Algorithmic Datasets</a>. In this paper, they documented a curious phenomenon where 
+    their neural networks would generalize long <i>after</i> overfitting their training dataset.
+    Typically in machine learning, performance on the training dataset and validation dataset 
+    improve together early in training, and if you continue training past a certain point the model will overfit the 
+    training data and its performance on the validation set will decay. The OpenAI paper showed that
+    the opposite can sometimes happen. Neural networks, in certain settings, can memorize their training dataset first,
+    and then only much later "grok" the task, generalizing late in training. Here is a key 
+    figure from the original paper, showing the prototypical grokking learning curve shape:
+    
+    <br><br>
+    <img src="assets/figures/originalgrok.png">
+    <figcaption>From Figure 1 of Power et al.: <a href="https://arxiv.org/abs/2201.02177">https://arxiv.org/abs/2201.02177</a>. The model 
+    memorizes the training data quickly, but then ~100k steps later begins to generalize.</figcaption> 
+    <br>
+
+    Grokking is not a universal phenomenon in deep learning. The setup of Power et al. was fairly unusual. Most notably, they studied 
+    the problem of learning what they called "algorithmic datasets". By this they just mean learning a binary operation. Given some binary operation
+    $\circ$, a model takes as input $a, b$ and must output $c$, where $a \circ b = c$. They use an decoder-only transformer which takes as input 
+    the six-token seqeunce < a > < $ \circ $ > < b > < = > < ? > < eos > and produces a probability distribution over the tokens the operation
+    is defined on ($a, b, c, \ldots$). The embeddings of $a, b, \ldots$ are trainable. The model is trained on a 
+    subset of the pairs $((a, b), c)$ of the binary operation 
+    table. Evidently, training in this setting leads to some bizarre learning behavior.
+    <br><br>
+
+    I think this paper captured people's attention for a few reasons.
+    First, it simply adds to the existing constellation of surprising facts about 
+    deep learning generalization
+    (<a href="https://arxiv.org/abs/1912.02292">double descent</a> being another).
+    Second, it may give some practitioners the (probably false) hope that if their network is struggling to learn, maybe they can just keep 
+    training and the network will magically "grok" and perform well. Third, grokking is an example of an <i>unexpected model capability gain</i>. 
+    It seems that <a href="https://www.lesswrong.com/posts/Lp4Q9kSGsJHLfoHX3/more-is-different-for-ai">More is Different for AI</a>.
+    With large language models, for instance, it is difficult to predict how performance on downstream tasks will improve as they are scaled up –
+    large improvements sometimes occur suddenly when models hit a certain size. In the case of grokking, neural network performance can 
+    unexpectedly improve, not as models are scaled up, but rather as they are trained for longer. These unexpected model capability gains 
+    are interesting from an AI safety perspective since they suggest that it may be difficult to anticipate the properties of 
+    future models, such as their potential for harm. Understanding these phase transitions in model behavior could prove 
+    important for safety. 
+    <br><br>
+
+
+    What should we aim to understand about generalization, beyond overfitting, on algoritihmic datasets? Here are a 
+    few key questions:
+    <ol>
+        <li>"Algorithmic datasets" are weird. <b>How do models generalize on them at all?</b> If you point out some dogs to a human
+            child, pretty soon they can "generalize" and identify other dogs. But if you showed a child half the entries of 
+            some binary op table, would you expect them to be able to "generalize" and fill in the other half? If the table was 
+            for something familiar like addition or multiplication, they might recognize the pattern. But our networks have no 
+            pre-existing knowledge about these operations. So it just seems bizarre that they would generalize at all. What even is 
+            the <i>right</i> way to fill in missing entries in a binary op table, without knowing what operation it is? It seems the 
+            only option is to evoke Kolmogorov complexity and identify the computationally simplest operation that matches the entries that
+             are given to you (training data). How do neural networks solve this problem?
+        </li>
+        <li>
+            In their paper on grokking, Power et al. observed that as they reduced the size of the training dataset, the time it took 
+            before their models grokked (generalized) increased dramatically. This critical training data fraction was somewhere between 30-40%
+            of the full table. <b>What is behind this dependence on training data fraction. </b>
+        </li>
+        <li>
+            Why do neural networks <i>first</i> memorize their training dataset and only later generalize? <b>Why don't they generalize early,
+            as is usually the case?</b>
+        </li>
+    </ol>
+    We seek answers to these questions. Our explanations center around an analysis of representation learning. Our analysis is still 
+    fairly preliminary, and could be wrong in important ways. It also is somewhat limited in scope, and definitely doesn't explain 
+    everything one might want to understand about grokking. But we thought it was ready to be shared and critiqued. 
+
+    <h2>Structured Representations Associated with Generalization</h2>
+    
+    We begin with an empirical observation. With an architecture similar to what Power et al. used<sup><a href="#fn1" id="ref1">1</a></sup>, we 
+    train on the task of modular addition and observe grokking. Across training, we do a PCA on the token embeddings and visualize their first 
+    two principle components. See the figure below:
+
+    <br><br>
+    <img src="assets/figures/ringplot.jpg" id="fullwidth">
+    <figcaption>Figure 1 of <a href="https://arxiv.org/abs/2205.10343">our paper</a>, visualizing how embeddings change over training. The task here is modular addition ($p = 59$). Here 
+        we show the embeddings simply projected onto the first two principle components. It apperas that a distinct ring shape is learned 
+        late in training, emerging around the time that the network generalizes. 
+    </figcaption>
+    <br>
+
+    We see something extremely cool when we do this: generalization coincides with the emergence of a distinctive ring 
+    structure in the embeddings. 
+
+
+    <!---------------------------------
+                FOOTNOTES
+    ---------------------------------->
+    <div id="bar"></div> 
+    <sup id="fn1">1. There are some slight differences, but these are incidental and were not chosen to influence results.<a href="#ref1" title="Jump back to footnote 1 in the text.">↩</a></sup>
+
+    <br><br><br><br><br>
+    In this paper, they observed something surprising: neural
+    networks which generalize <i>after</i> overfitting.
+
 <br>
 $$ \Gamma(s) = \int_0^\infty t^{s-1} e^{-t} dt $$
 Vestibulum ac risus ut elit placerat congue quis et nisi. Mauris a tortor in turpis pellentesque varius eget faucibus neque. In dui orci, rutrum id tellus non, ultrices pellentesque tortor. Cras ornare, enim in iaculis auctor, ante leo efficitur ligula, sit amet convallis erat arcu vulputate velit. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Fusce sodales felis sapien, at lacinia sapien congue vel. Nulla facilisi. Morbi id cursus velit, at rhoncus metus. Phasellus pellentesque imperdiet magna, accumsan mollis risus auctor sit amet. Aliquam efficitur, est sit amet iaculis porta, orci purus finibus orci, fringilla pulvinar orci sapien ac sapien. Aenean sit amet neque tortor. Donec nisi arcu, suscipit sit amet neque at, iaculis sollicitudin nisl. Morbi at porta diam.

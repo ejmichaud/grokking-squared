@@ -3,7 +3,8 @@ html, body {
 	height: 100%;
 	padding: 0;
 	margin: 0;
-	font-family: "Avenir Next", "Helvetica Neue", sans-serif;
+	/* font-family: "Avenir Next", "Helvetica Neue", sans-serif; */
+    font-family: "Libre Franklin", "Helvetica Neue", sans-serif;
 	display: flex;
 	flex-direction: column;
     background-color: #F6F5F1;
@@ -18,20 +19,34 @@ html, body {
 	word-wrap: break-word;
 	box-sizing: border-box;
 	/* min-width: 200px; */
-	max-width: 750px;
+	max-width: 720px;
 	margin: 0 auto;
-	padding: 20px 45px;
+	padding: 20px 30px;
 	flex: 1.2 0 auto;
 }
 
 .content img {
     display: block;
     margin: 0 auto;
-    border-radius: 7px;
-    width: 99%;
-    height: auto;
+    border-radius: 6px;
+    width: 75%;
     border: 2px solid black;
 }
+
+#fullwidth {
+    width: 100%;
+    border: 2px solid black;
+}
+
+.content figcaption {
+    display: block;
+    margin: auto;
+    width: 75%;
+    color: grey;
+    font-size: 14px;
+    text-align: center;
+}
+
 
 .content quote {
     display: block;
@@ -40,8 +55,23 @@ html, body {
     width: 80%
 }
 
+.content subtitle {
+    display: block;
+    margin: auto;
+    width: 80%;
+    text-align: center;
+    font-size: 14px;
+    color: grey;
+}
+
 .content h1 {
     text-align: center;
+    font-weight: 400;
+}
+
+.content h2 {
+    text-align: center;
+    font-weight: 400;
 }
 
 .preview {

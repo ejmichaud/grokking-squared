@@ -73,7 +73,9 @@
             Liu</a>, <a href="https://okitouni.github.io/">Ouail Kitouni</a>, <a href="https://nolte.dev/">Niklas Nolte</a>, 
             <a href="https://ericjmichaud.com">Eric J. Michaud</a>, <a href="https://space.mit.edu/home/tegmark/">Max Tegmark</a>, 
             and <a href="https://physics.mit.edu/faculty/michael-williams/">Mike Williams</a>. It aims to be a bit pedagogically
-            friendlier than the full paper and also includes some videos and additional discussion. It was written mostly by Eric.
+            friendlier than the full paper and also includes some videos and additional discussion. It was written mostly by Eric.<br><br>
+
+            You are seeing v0 of this post, last updated 2022-05-30. It could change considerably over time. 
 </subtitle>
 
 <p>
@@ -83,7 +85,7 @@ Last year, some researchers at OpenAI released a short paper called
     their neural networks would generalize long <i>after</i> overfitting their training dataset.
     Typically in machine learning, performance on the training dataset and validation dataset 
     improve together early in training, and if you continue training past a certain point the model will overfit the 
-    training data and its performance on the validation set will decay. The OpenAI paper showed that
+    training data and its performance on the validation data will decay. The OpenAI paper showed that
     the opposite can sometimes happen. Neural networks, in certain settings, can memorize their training dataset first,
     and then only much later "grok" the task, generalizing late in training. Here is a key 
     figure from the original paper, showing the prototypical grokking learning curve shape:
@@ -95,12 +97,15 @@ Last year, some researchers at OpenAI released a short paper called
     <br>
 
     Grokking is not a universal phenomenon in deep learning. The setup of Power et al. was fairly unusual. Most notably, they studied 
-    the problem of learning what they called "algorithmic datasets". By this they just mean learning a binary operation. Given some binary operation
-    $\circ$, a model takes as input $a, b$ and must output $c$, where $a \circ b = c$. They use an decoder-only transformer which takes as input 
+    the problem of learning what they called "algorithmic datasets". By this they just mean learning a binary operation, usually a group operation 
+    like modular addition, multiplication, etc. Denoting such a binary operation as "$\circ$", a model takes as input $a, b$ and must output 
+    $c$, where $a \circ b = c$. 
+    They use a decoder-only transformer which takes as input 
     the six-token seqeunce < a > < $ \circ $ > < b > < = > < ? > < eos > and produces a probability distribution over the tokens the operation
     is defined on ($a, b, c, \ldots$). The embeddings of $a, b, \ldots$ are trainable. The model is trained on a 
     subset of the pairs $((a, b), c)$ of the binary operation 
-    table. Evidently, training in this setting leads to some bizarre learning behavior.
+    table. Evidently, this setup exhibits some atypical learning dynamics.
+
     <br><br>
 
     I think this paper captured people's attention for a few reasons.
@@ -117,9 +122,9 @@ Last year, some researchers at OpenAI released a short paper called
     future models, such as their potential for harm. Understanding these phase transitions in model behavior could prove 
     important for safety. 
     <br><br>
-
-
-    What should we aim to understand about generalization, beyond overfitting, on algoritihmic datasets? Here are a 
+    
+    
+    What should we aim to understand about grokking -- generalization, beyond overfitting, on algoritihmic datasets? Here are a 
     few key questions:
     <ol>
         <li>"Algorithmic datasets" are weird. <b>How do models generalize on them at all?</b> If you point out some dogs to a human
@@ -127,9 +132,9 @@ Last year, some researchers at OpenAI released a short paper called
             some binary op table, would you expect them to be able to "generalize" and fill in the other half? If the table was 
             for something familiar like addition or multiplication, they might recognize the pattern. But our networks have no 
             pre-existing knowledge about these operations. So it just seems bizarre that they would generalize at all. What even is 
-            the <i>right</i> way to fill in missing entries in a binary op table, without knowing what operation it is? It seems the 
-            only option is to evoke Kolmogorov complexity and identify the computationally simplest operation that matches the entries that
-             are given to you (training data). How do neural networks solve this problem?
+            the <i>right</i> way to fill in missing entries in a binary op table, without knowing what operation it is? Maybe the only
+            option is to evoke Kolmogorov complexity and identify the computationally simplest operation that matches the entries that
+             are given to you (training data)? How do neural networks solve this problem?
         </li>
         <li>
             In their paper on grokking, Power et al. observed that as they reduced the size of the training dataset, the time it took 
@@ -141,26 +146,210 @@ Last year, some researchers at OpenAI released a short paper called
             as is usually the case?</b>
         </li>
     </ol>
-    We seek answers to these questions. Our explanations center around an analysis of representation learning. Our analysis is still 
+    In our paper <a href="https://arxiv.org/abs/2205.10343">Towards Understanding Grokking: An Effective Theory of Representation Learning
+    </a>, we sought answers to these questions. Our explanations center around an analysis of representation learning. This work is still 
+    fairly preliminary. It could be wrong in important ways, and is definitely limited in scope -- it is certainly not the final word 
+    on grokking. This first version of the paper is also not the clearest possible articulation of our ideas (it was limited by formatting requirements
+    and rushed to meet a deadline). The explanations that follow will hopefully be clarifying.
+    
+    <!-- Our analysis is still 
     fairly preliminary, and could be wrong in important ways. It also is somewhat limited in scope, and definitely doesn't explain 
-    everything one might want to understand about grokking. But we thought it was ready to be shared and critiqued. 
+    everything one might want to understand about grokking. But we thought it was ready to be shared and critiqued.  -->
 
     <h2>Structured Representations Associated with Generalization</h2>
     
     We begin with an empirical observation. With an architecture similar to what Power et al. used<sup><a href="#fn1" id="ref1">1</a></sup>, we 
-    train on the task of modular addition and observe grokking. Across training, we do a PCA on the token embeddings and visualize their first 
+    train on the task of modular addition ($p = 59$) and observe grokking. Across training, we do a PCA on the token embeddings and visualize their first 
     two principle components. See the figure below:
 
     <br><br>
     <img src="assets/figures/ringplot.jpg" id="fullwidth">
     <figcaption>Figure 1 of <a href="https://arxiv.org/abs/2205.10343">our paper</a>, visualizing how embeddings change over training. The task here is modular addition ($p = 59$). Here 
-        we show the embeddings simply projected onto the first two principle components. It apperas that a distinct ring shape is learned 
-        late in training, emerging around the time that the network generalizes. 
+        we show the embeddings simply projected onto the first two principle components. It appears that a distinct ring shape is learned 
+        late in training.
     </figcaption>
     <br>
 
-    We see something extremely cool when we do this: generalization coincides with the emergence of a distinctive ring 
-    structure in the embeddings. 
+    We see something extremely cool when we do this: generalization is associated with a distinctive ring 
+    structure in the embeddings. Furthermore, the embeddings are very precisely ordered along the ring, looping back to 0 after 58. 
+    Here is a video showing how the embeddings change throughout training:
+    
+    <!-- generalizes a bit before the embeddings arrange
+    themselves in a tight ring, but does seem to happen as the embeddings  -->
+    
+    <br><br>
+    <video controls>Your browser does not support the &lt;video&gt; tag.
+        <source src="assets/figures/modular-addition59-deep_pca12.mp4"/>
+    </video>
+    <figcaption>
+        Visualization of first two principle components of learned embeddings throughout training. In this video, we do the PCA at each step. The
+        sudden jumps are an artifact of this and not discontinuous changes in the embeddings themselves. 
+    </figcaption>
+    <br>
+
+    Note that the model hits 100% validation accuracy at around step 3700. Right before this, there seems to be some quick movement where 
+    the embeddings are repelled from the center into a loose ring. At the instant when the model fully generalizes, 
+    there seems to be a global ordering of the embeddings but more locally they do 
+    not seem to be ordered very precisely. The ring becomes more precise, and the embeddings become fully ordered, 
+    if one continues training for a while. Instead of doing a PCA at each 
+    step, it is useful to visualize the embeddings along the top two components <i>computed at the end of training.</i>:
+    
+    <br><br>
+    <video controls>Your browser does not support the &lt;video&gt; tag.
+        <source src="assets/figures/modular-addition59-deep_pca12_fixed.mp4"/>
+    </video>
+    <figcaption>
+        Visualization of first two principle components of learned embeddings throughout training. In this video, we compute the PCA at the very
+        end of training and use these components to visualize the embeddings throughout training. 
+    </figcaption>
+    <br>
+
+    It appears that the two principle components at the end of training are those for which the randomly-initialized embeddings 
+    were already globally somewhat ordered. From this video, it appears that generalization occurs when the embeddings 
+    correctly order themselves additionally at the local level. If you track how "19" moves throughout training, for instance, you see that 
+    at initialization it is positioned after (counterclockwise) 20, 22, arguably 25, and on top of 23. When the network has generalized, 19 
+    is "correctly" positioned between 18 and 20. Not all the embeddings appear to be ordered correctly at the moment of full generalization (see 
+    4, 10, 17, 33, 42, and 44), though if one continues to train for longer they appear to become fully ordered.
+    <br><br>
+
+    It is interesting how this circular, ordered layout resembles how we humans visualize modular addition as "clock math". 
+    However, different orderings are sometimes learned with different seeds (e.g. consecutive embeddings might be spaced about 1/4th of
+     the circle apart instead of 1/59th), so we should be careful about drawing too much from this resemblance. 
+    <u>What we do draw from these experiments is that there appears to be a connection between generalization and the embeddings arranging
+    themselves in some structured way.</u> We do not claim that this structure is fully captured by our 2-dimensional PCA plots (the 
+    fact that the network first generalizes when a few embeddings are still "out of order" suggests that other dimensions are at play, or that the PCA 
+    axes are not quite the most relevant projection), though we do find them very suggestive...
+    <br><br>
+
+    <h2>Our Theory</h2>
+
+    For any given feedforward neural network, the "early layers" and the "late layers" are 
+    engaged in a kind of cooperative game. The "early layers" transform the network's input into some representation,
+    and the "late layers" perform some computation on this representation to produce the network's output. The job of the "early layers"
+    is to service the "late layers" with a usable representation. The job of the "late layers" is to compute the correct output from 
+    this representation -- to not bungle the good work that the "early layers" have done in giving them a workable representation!
+    <!-- the "early layers" have given them and to compute the correct output from the representation.  -->
+    <br><br>
+    
+    For <i>algorithmic datasets</i>,
+    we conjecture that there are special, structured representations that the "early layers" can learn which allow the "late layers" to
+    internally implement an operation isomorphic to the "algorithmic" operation itself (modular addition, multiplication, etc.). 
+    Thus on algorithmic datasets, the setting of grokking, the reason why the network 
+    is able to generalize at all is because internally it is performing something akin to the true target operation. It is not just "fitting"
+    the dataset, but rather its internal structure corresponds in some way to the process that generated the data. 
+    <!-- computation isomorphic to the binary operation  -->
+    <!-- that the whole network is tasked with learning.  -->
+    <!-- But doing this requires really special representations of inputs to be learned by the "early layers". -->
+    <br><br>
+
+    There is a difficult coordination problem that the "early layers" and the "late layers" have to solve for this special 
+    internal operation to be learned. In particular, if the "late layers" learn much faster than the "early layers", then they will 
+    quickly fit bad, random, approximately static representations (given by the "early layers" at initialization), resulting in overfitting. 
+    On the other hand, if the "early layers" learn much faster than the "late layers", then they will quickly find (weird) representations 
+    which when thrown through the bad, random, approximately static "later layers" will produce the desired outputs. This will also result in 
+    overfitting.
+    
+    <!-- If
+    the "late layers" learn much slower than the "early layers", then the "early layers" will try to quickly find representations 
+
+    
+    which
+    when inputed into the bad, approximately static "late layers" -->
+    <br><br> 
+    <!-- But if they coordinate well, then generalization can happen at about the same time the network "fits" the training data.  -->
+    Generalization requires that the "early layers" and "late layers" coordinate well. 
+    In the case of grokking, there is a coordination failure at first. The network learns unstructured representations and fits them. But it 
+    can't do this perfectly (the training loss is not exactly zero), giving some training signal for the "early layers" and "late layers"
+    to work with. We suggest that the "later layers" will be less complex, and able to achieve lower loss, if they learn to perform something 
+    akin to the underlying binary operation. The reason is that, if some part of the network internally implements the binary operation, then the 
+    downstream layers need only fit $p$ representations instead of $\mathcal{O}(p^2)$ points. Regularization schemes like weight decay, reported to be helpful
+    in producing generalization in the original grokking paper, provide a training signal towards lower-complexity "late layers" which 
+    perform the target operation internally.
+<!--     
+    "late layers" first fit random representations from the "early layers". But they can't do 
+    this perfectly (the training loss is not exactly zero), giving some training signal for the "early layers" and "late layers"
+    to work with. We suggest that the "later layers" will be less complex, and able to achieve lower loss, if they learn to perform something 
+    akin to the underlying binary operation. The reason is that, if some part of the network internally implements the binary operation, then the rest 
+    of the network only needs to fit $p$ representations instead of $\mathcal{O}(p^2)$ points. Regularization schemes like weight decay, reported to be helpful
+    in producing generalization in the original grokking paper, provide an additional training signal towards lower-complexity "late layers" which 
+    perform the operation.  -->
+    <br><br>
+
+    Theoretically, there are as many ways of arbitrarily dividing a network into "early layers" and "late layers" as there are 
+    layers in the network. For the Transformer setup, we consider the learned embeddings to be the "early layers" and the 
+    whole decoder to be the "late layers". 
+    Based on the picture presented above, we should expect that the decoder learning rate, relative to the learning rate that the 
+    embeddings are trained with, and the decoder regularization (weight decay here) should control grokking. Indeed, doing a grid search 
+    over decoder learning rate and weight decay, we find a variety of learning behaviors, with grokking occurring within a certain 
+    strip of learning rates. 
+
+    <br><br>
+    <img src="assets/figures/phasediagram_transformer.jpg">
+    <figcaption>From Figure 6 of <a href="https://arxiv.org/abs/2205.10343">our paper</a>, a <i>phase diagram</i> of learning dynamics.
+        <b>Memorization</b> means the network overfits but doesn't generalize (within $10^5$ steps), <b>confusion</b> means the network 
+        neither overfit nor generalized, <b>comprehension</b> means that the network generalized within 1000 steps of fitting the training set,
+        <b>grokking</b> means the network generalized at least 1000 steps after fitting the training set. See Table 1 of our paper for full definitions. 
+    </figcaption>
+    <br>
+
+    <h2>A Toy Model</h2>
+
+    We codify our theory into a toy model, and consider the binary operation of addition. Our toy model takes as input the symbols $a, b$, 
+    maps them to trainable embeddings $\bm{E}_a, \bm{E}_b \in \mathbb{R}^{d_{\text{in}}}$, explicitly adds these together, then maps the result to targets with an MLP decoder:
+    $$ (a, b) \mapsto {\rm Dec}(\bm{E}_a + \bm{E}_b). $$
+    For such a model, generalization comes directly from learning structured representations. In particular, if the embeddings 
+    $\bm{E}_0, \bm{E}_1, \bm{E}_2, \ldots, \bm{E}_{p-1}$ are evenly spaced along a single line, then 
+
+    <!-- simpler and achieve lower loss.  -->
+
+    <!-- , and hopefully discover some simpler solution where they cooperate and perform the operation internally. Internally
+    implementing the operation leads to simpler "later layers" since only $p$ representations need to be fit (representations after the binary 
+    operation has been performed internally) instead of $\mathcal{O}(p^2)$.  -->
+    
+    <!-- solution is 
+    simpler for the 
+    
+    This does not 
+    have to happen all at once. 
+    
+    and eventually the "early layers" produce a representation which 
+    can be  -->
+
+
+
+
+    
+    <br><br><br><br>
+    Consider partition a feedforward network into two parts -- the "early layers" and the "late layers". At what 
+    layer you draw this line is arbitrary, though there are likely more and less interesting ways 
+    one can think of the early layers and the late layers as being engaged 
+    
+    of the parts of the network before 
+    this layer and the parts of the network after this layer are engaged in a kind of cooperative game. 
+    The first part 
+
+
+
+    <!-- is that  -->
+
+    <br><br><br><br>
+    
+    but it may still be suggestive.
+
+
+    This has 
+    a striking resemblance to how we visualize modular addition as "clock math". While this resemblance is perhaps suggestive, 
+    one has to be a bit 
+    careful in taking it too seriously, since we find that other orderings are sometimes learned with different seeds. These orderings
+    are still structured, but have a different spacing (e.g. consecutive embeddings are spaced about 1/4th of the circle apart instead of 1/59th).
+
+
+    
+    <!-- However, if instead of 
+    
+    At this stage, the embeddings seem only globally ordered, and not
+    locally. There does seem to be a quick and the super precise ring forms if one continues training for much longer. 
+    -->
 
 
     <!---------------------------------

@@ -47,6 +47,13 @@ html, body {
     text-align: center;
 }
 
+.content video {
+    display: block;
+    margin: auto;
+    width: 75%;
+    border: 2px solid black;
+}
+
 
 .content quote {
     display: block;

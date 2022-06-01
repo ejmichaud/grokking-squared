@@ -75,7 +75,7 @@
             and <a href="https://physics.mit.edu/faculty/michael-williams/">Mike Williams</a>. It aims to be a bit pedagogically
             friendlier than the full paper and also includes some videos and additional discussion. It was written mostly by Eric.<br><br>
 
-            You are seeing v0 of this post, last updated 2022-05-30. It could change considerably over time. 
+            You are seeing v0 of this post, last updated 2022-06-01. It could change considerably over time. 
 </subtitle>
 
 <p>
@@ -108,7 +108,7 @@ Last year, some researchers at OpenAI released a short paper called
 
     <br><br>
 
-    I think this paper captured people's attention for a few reasons.
+    This paper captured people's attention for a few reasons.
     First, it simply adds to the existing constellation of surprising facts about 
     deep learning generalization
     (<a href="https://arxiv.org/abs/1912.02292">double descent</a> being another).
@@ -149,8 +149,8 @@ Last year, some researchers at OpenAI released a short paper called
     In our paper <a href="https://arxiv.org/abs/2205.10343">Towards Understanding Grokking: An Effective Theory of Representation Learning
     </a>, we sought answers to these questions. Our explanations center around an analysis of representation learning. This work is still 
     fairly preliminary. It could be wrong in important ways, and is definitely limited in scope -- it is certainly not the final word 
-    on grokking. This first version of the paper is also not the clearest possible articulation of our ideas (it was limited by formatting requirements
-    and rushed to meet a deadline). The explanations that follow will hopefully be clarifying.
+    on grokking. The formatting and style constraints of the paper also made it not the clearest possible articulation of our ideas. The 
+    explanations that follow will hopefully be clarifying.
     
     <!-- Our analysis is still 
     fairly preliminary, and could be wrong in important ways. It also is somewhat limited in scope, and definitely doesn't explain 
@@ -160,7 +160,7 @@ Last year, some researchers at OpenAI released a short paper called
     
     We begin with an empirical observation. With an architecture similar to what Power et al. used<sup><a href="#fn1" id="ref1">1</a></sup>, we 
     train on the task of modular addition ($p = 59$) and observe grokking. Across training, we do a PCA on the token embeddings and visualize their first 
-    two principle components. See the figure below:
+    two principle components.<sup><a href="#fn2" id="ref2">2</a></sup> See the figure below:
 
     <br><br>
     <img src="assets/figures/ringplot.jpg" id="fullwidth">
@@ -221,7 +221,7 @@ Last year, some researchers at OpenAI released a short paper called
     axes are not quite the most relevant projection), though we do find them very suggestive...
     <br><br>
 
-    <h2>Our Theory</h2>
+    <h2>Our Theory (somewhat speculative)</h2>
 
     For any given feedforward neural network, the "early layers" and the "late layers" are 
     engaged in a kind of cooperative game. The "early layers" transform the network's input into some representation,
@@ -292,13 +292,49 @@ Last year, some researchers at OpenAI released a short paper called
     </figcaption>
     <br>
 
-    <h2>A Toy Model</h2>
+    <h2>A Toy Model and Effective Theory</h2>
 
-    We codify our theory into a toy model, and consider the binary operation of addition. Our toy model takes as input the symbols $a, b$, 
-    maps them to trainable embeddings $\bm{E}_a, \bm{E}_b \in \mathbb{R}^{d_{\text{in}}}$, explicitly adds these together, then maps the result to targets with an MLP decoder:
+    The basic picture we've laid out is that models (1) find a good representation of inputs (2) internally perform something akin to 
+    the target binary operation with these representaitons and (3) fit the result to the desired output. It would be cool to mechanistically
+    understand our models to check this, but we haven't done this yet. Instead, we developed a toy model capturing this basic structure and 
+    studied its properties. 
+    <br><br>
+
+    We consider learning the binary operation of addition (not modulo anything -- it's not closed, so if inputs are from $0, \ldots, p-1$, 
+    outputs are from $0, \ldots, 2p-2$). Our toy model takes as input the symbols $a, b$, 
+    maps them to (trainable) embeddings $\bm{E}_a, \bm{E}_b \in \mathbb{R}^{d_{\text{in}}}$, adds these together, then maps the result to targets with an MLP decoder:
     $$ (a, b) \mapsto {\rm Dec}(\bm{E}_a + \bm{E}_b). $$
-    For such a model, generalization comes directly from learning structured representations. In particular, if the embeddings 
-    $\bm{E}_0, \bm{E}_1, \bm{E}_2, \ldots, \bm{E}_{p-1}$ are evenly spaced along a single line, then 
+    
+    This kind of toy model is nice since we see that generalization comes directly from learning structured representations. 
+    In particular, if the model learns to place the embeddings
+    $\bm{E}_0, \bm{E}_1, \bm{E}_2, \ldots, \bm{E}_{p-1}$ evenly spaced along a single line, i.e. $\bm{E}_k = \bm{v} + k \bm{w}$ for any 
+    $\bm{v}, \bm{w} \in \mathbb{R}^{d_\text{in}}$, then if the model achieves zero error on training sample $((i, j), i+j)$, it will 
+    generalize to any other sample $((m, n), m + n)$ for which $m + n = i + j$. This is because the input to the decoder will be 
+    the same for these two samples. 
+    <br><br>
+
+    What do the learning dynamics of the embeddings $\bm{E}_{*}$ look like for this toy model? What determines whether the model 
+    learns to arrange the $\bm{E}_{*}$ along a line? We develop an effective theory for the learning dynamics of embeddings. 
+    The way that the $\bm{E}_{*}$ evolve over training, in practice, will depend on the decoder and the relative learning rate 
+    between the $\bm{E}_{*}$ and ${\rm Dec}$. As discussed earlier, if the decoder learning rate is much faster than the learning 
+    rate for the embeddings, the model will likely overfit to the embeddings at initialization. Unfortunately, in the effective 
+    theory presented in this first paper, we have not incorporated any facts about the decoder into our effective theory. This 
+    means that we can't yet analytically predict how learning hyperparameters determine grokking -- we can't 
+    compute the phase diagram of learning behavior, shown above, analytically. However, our effective theory does seem to 
+    predict the dependence of grokking on the training set size, question #2 discussed at the beginning. 
+    <br><br>
+    
+    We model the learning dynamics of the $\bm{E}_{*}$ as evolving under an <i>effective loss</i> $\ell_\text{eff}$. This effective loss 
+    basically measures how well/poorly the embeddings are arranged along a line. It is defined as:
+    $$ \ell_\text{eff} = \frac{1}{Z_0} \sum_{(i, j, m, n) \in P_0(D)} |(\bm{E}_i + \bm{E}_j) - (\bm{E}_m + \bm{E}_n)| $$
+    where $Z_0 = \sum_k |\bm{E}_k|^2 $, and $P_0(D)$ is defined as:
+    $$ P_0(D) = \{ (i, j, m, n) : (i, j) \in D, (m, n) \in D,  i + j = m + n \} $$
+    where $D$ is the training dataset. $P_0(D)$ consists of pairs of elements in the training dataset which have the same sum. 
+    We see that if the $\bm{E}_{*}$ are evenly-spaced on a line, then $\bm{E}_i + \bm{E}_j = \bm{E}_m + \bm{E}_n$ for
+    $(i, j, m, n) \in P_0(D)$, and thus $\ell_\text{eff} = 0$. The learning dynamics under this loss are simply:
+    $$ \frac{d\bm{E}_i}{dt} = -\eta \frac{\partial \ell_\text{eff}}{\partial \bm{E}_i} $$
+
+
 
     <!-- simpler and achieve lower loss.  -->
 
@@ -356,8 +392,15 @@ Last year, some researchers at OpenAI released a short paper called
                 FOOTNOTES
     ---------------------------------->
     <div id="bar"></div> 
+    <h2>Footnotes</h2>
+    
     <sup id="fn1">1. There are some slight differences, but these are incidental and were not chosen to influence results.<a href="#ref1" title="Jump back to footnote 1 in the text.">↩</a></sup>
-
+    <br>
+    <sup id="fn2">2. The original paper on grokking from Power et al. showed a visualization of embeddings with t-SNE,
+        but we find the PCA projections to be more interesting. We also track how structure in the embeddings changes over training,
+        whereas they just showed embeddings on the trained network.<a href="#ref2" title="Jump back to footnote 2 in the text.">↩</a></sup>
+    
+    
     <br><br><br><br><br>
     In this paper, they observed something surprising: neural
     networks which generalize <i>after</i> overfitting.

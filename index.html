@@ -152,7 +152,7 @@ Last year, some researchers at OpenAI released a short paper called
     </ol>
     In our paper <a href="https://arxiv.org/abs/2205.10343">Towards Understanding Grokking: An Effective Theory of Representation Learning
     </a>, we sought answers to these questions. We approach the problem via an analysis of representation learning. 
-    I don't think that we fully answer the three questions, but I do think that we have both (1) some interesting empirical observations and 
+    I don't think that we fully answer the three questions, but I do think that we present both (1) some interesting empirical observations and 
     (2) an interesting style of theoretical analysis. 
     
     <!-- Our explanations center around an analysis of representation learning. I don't think 
@@ -220,7 +220,7 @@ Last year, some researchers at OpenAI released a short paper called
     correctly order themselves additionally at the local level. If you track how "19" moves throughout training, for instance, you see that 
     at initialization it is positioned after (counterclockwise) 20, 22, arguably 25, and on top of 23. When the network has generalized, 19 
     is "correctly" positioned between 18 and 20. Not all the embeddings appear to be ordered correctly at the moment of full generalization (see 
-    4, 10, 17, 33, 42, and 44), though if one continues to train for longer they appear to become fully ordered.
+    4, 10, 17, 33, 42, and 44), though if one continues to train for longer they become fully ordered.
     <br><br>
 
     It is interesting how this circular, ordered layout resembles how we humans visualize modular addition as "clock math". 
@@ -274,7 +274,8 @@ Last year, some researchers at OpenAI released a short paper called
     can't do this perfectly (the training loss is not exactly zero), giving some training signal for the "early layers" and "late layers"
     to work with. We suggest that the "later layers" will be less complex, and able to achieve lower loss, if they learn to perform something 
     akin to the underlying binary operation. The reason is that, if some part of the network internally implements the binary operation, then the 
-    downstream layers need only fit $p$ representations instead of $\mathcal{O}(p^2)$ points. Regularization schemes like weight decay, reported to be helpful
+    downstream layers need only fit $p$ representations, the operation output, instead of $\mathcal{O}(p^2)$ points, the operation inputs. 
+    Regularization schemes like weight decay, reported to be helpful
     in producing generalization in the original grokking paper, provide a training signal towards lower-complexity "late layers" which 
     perform the target operation internally.
 <!--     
@@ -426,6 +427,7 @@ Last year, some researchers at OpenAI released a short paper called
     For question (2), we studied a toy model of grokking where the relationship between structured representations and generalization is clear.
     We modeled the learning dynamics of these representations under an effective loss, and found that this model captures the dependence 
     on training set size pretty well. 
+    <br><br>
 
     For question (3), we have some heuristic arguments about learning speed between different parts of a network, but I don't feel that 
     we fully understand why grokking appears on algorithmic datasets and not on more standard tasks. It likely has something to do with how 

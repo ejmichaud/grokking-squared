@@ -403,6 +403,35 @@ Last year, some researchers at OpenAI released a short paper called
     This allowed us to analytically study the effect of the training data fraction on learning. 
     But we do not yet have a full account of how these general circuits are formed.
 
+   <h2>Taking Stock</h2>
+    In terms of our original three questions about grokking, I think that we have a partial answer to (1), a reasonable answer to (2), and 
+    a partial answer to (3).<br><br>
+    
+    In terms of question (1), about why generalization happens at all, I think our observations about 
+    structured representations being associated with generalization suggests that the network is doing something very clever internally. 
+    It is probably doing something like internally implementing the target operation (otherwise how would the network generalize),
+     but we don't yet understand mechanistically how it does this. By the way, embeddings arranged on a ring seem pretty typical 
+     for many tasks, but the order changes. Here is non-modular addition, instead of mod 59:
+
+     <br><br>
+     <img src="assets/figures/ringplot-addition.png" id="fullwidth">
+     <figcaption>Visualization of how embeddings change over training, this time for standard addition rather than modular addition. Numbers within 
+         each bundle of the ring often have the same sum. 
+     </figcaption>
+     <br>
+    Interestingly, within each bundle on the ring are numbers belonging to the same "parallelogram". At one o'clock we find 
+    the embeddings for 2, 13, 24, 35, 46, and 57, for which 2 + 57 = 13 + 46 = 24 + 35. Pretty neat. 
+    <br><br>
+
+    For question (2), we studied a toy model of grokking where the relationship between structured representations and generalization is clear.
+    We modeled the learning dynamics of these representations under an effective loss, and found that this model captures the dependence 
+    on training set size pretty well. 
+
+    For question (3), we have some heuristic arguments about learning speed between different parts of a network, but I don't feel that 
+    we fully understand why grokking appears on algorithmic datasets and not on more standard tasks. It likely has something to do with how 
+    a particularly special circuit must be learned for generalization to occur on algorithmic datasets...<br><br>
+
+    Always more to think about!
     
     <!-- with this effective theory of the training dynamics, we can vary  
     

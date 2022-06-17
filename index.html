@@ -18,7 +18,7 @@
 
 
 <head>
-    <title>Thoughts on Grokking</title>
+    <title>An Analysis of Grokking</title>
     
     <!--------------------------------------------------
                 Import and Define CSS Things!
@@ -68,14 +68,17 @@
 <h1>Understanding <i>grokking</i> in terms of representation learning dynamics <div style=color:red;>[in progress]</div></h1>
 
 <subtitle>
-    This post accompanies the preprint <a href="https://arxiv.org/abs/2205.10343">Towards Understanding 
+    This post is based on the preprint <a href="https://arxiv.org/abs/2205.10343">Towards Understanding 
         Grokking: An Effective Theory of Representation Learning</a>, by <a href="https://kindxiaoming.github.io/">Ziming
             Liu</a>, <a href="https://okitouni.github.io/">Ouail Kitouni</a>, <a href="https://nolte.dev/">Niklas Nolte</a>, 
             <a href="https://ericjmichaud.com">Eric J. Michaud</a>, <a href="https://space.mit.edu/home/tegmark/">Max Tegmark</a>, 
-            and <a href="https://physics.mit.edu/faculty/michael-williams/">Mike Williams</a>. It aims to be a bit pedagogically
-            friendlier than the full paper and also includes some videos and additional discussion. It was written mostly by Eric.<br><br>
+            and <a href="https://physics.mit.edu/faculty/michael-williams/">Mike Williams</a>. It aims to be a bit easier to read
+            than the full paper and also includes some videos and additional discussion. It was written by Eric.<br><br>
 
-            You are seeing v0 of this post, last updated 2022-06-01. It could change considerably over time. 
+            <!-- <b>Epistemic Status</b>:  -->
+
+
+            You are seeing v0 of this post, last updated 2022-06-17. It could change over time as we continue to think about grokking.
 </subtitle>
 
 <p>
@@ -83,17 +86,18 @@ Last year, some researchers at OpenAI released a short paper called
     <a href="https://arxiv.org/abs/2201.02177">Grokking: Generalization Beyond Overfitting on 
     Small Algorithmic Datasets</a>. In this paper, they documented a curious phenomenon where 
     their neural networks would generalize long <i>after</i> overfitting their training dataset.
-    Typically in machine learning, performance on the training dataset and validation dataset 
+    Typically, when training neural networks, performance on the training dataset and validation dataset 
     improve together early in training, and if you continue training past a certain point the model will overfit the 
     training data and its performance on the validation data will decay. The OpenAI paper showed that
-    the opposite can sometimes happen. Neural networks, in certain settings, can memorize their training dataset first,
+    the opposite can sometimes happen. Neural networks, in certain settings, can memorize their training dataset <i>first</i>,
     and then only much later "grok" the task, generalizing late in training. Here is a key 
     figure from the original paper, showing the prototypical grokking learning curve shape:
     
     <br><br>
     <img src="assets/figures/originalgrok.png">
     <figcaption>From Figure 1 of Power et al.: <a href="https://arxiv.org/abs/2201.02177">https://arxiv.org/abs/2201.02177</a>. The model 
-    memorizes the training data quickly, but then ~100k steps later begins to generalize.</figcaption> 
+    memorizes the training data quickly, but then ~100k steps later begins to generalize, hitting ~100% validation accuracy 
+    around a million training steps.</figcaption> 
     <br>
 
     Grokking is not a universal phenomenon in deep learning. The setup of Power et al. was fairly unusual. Most notably, they studied 
@@ -119,7 +123,7 @@ Last year, some researchers at OpenAI released a short paper called
     large improvements sometimes occur suddenly when models hit a certain size. In the case of grokking, neural network performance can 
     unexpectedly improve, not as models are scaled up, but rather as they are trained for longer. These unexpected model capability gains 
     are interesting from an AI safety perspective since they suggest that it may be difficult to anticipate the properties of 
-    future models, such as their potential for harm. Understanding these phase transitions in model behavior could prove 
+    future models, including their potential for harm. Understanding these phase transitions in model behavior could prove 
     important for safety. 
     <br><br>
     
@@ -147,11 +151,18 @@ Last year, some researchers at OpenAI released a short paper called
         </li>
     </ol>
     In our paper <a href="https://arxiv.org/abs/2205.10343">Towards Understanding Grokking: An Effective Theory of Representation Learning
-    </a>, we sought answers to these questions. Our explanations center around an analysis of representation learning. This work is still 
+    </a>, we sought answers to these questions. We approach the problem via an analysis of representation learning. 
+    I don't think that we fully answer the three questions, but I do think that we have both (1) some interesting empirical observations and 
+    (2) an interesting style of theoretical analysis. 
+    
+    <!-- Our explanations center around an analysis of representation learning. I don't think 
+    we fully answer the questions I've listed above. Indeed our work is still fairly preliminary, is limited in scope, and definitely 
+    won't be the final word on grokking.  -->
+    <!-- This work is still 
     fairly preliminary. It could be wrong in important ways, and is definitely limited in scope -- it is certainly not the final word 
     on grokking. The formatting and style constraints of the paper also made it not the clearest possible articulation of our ideas. The 
-    explanations that follow will hopefully be clarifying.
-    
+    explanations that follow will hopefully be clarifying. -->
+
     <!-- Our analysis is still 
     fairly preliminary, and could be wrong in important ways. It also is somewhat limited in scope, and definitely doesn't explain 
     everything one might want to understand about grokking. But we thought it was ready to be shared and critiqued.  -->
@@ -221,7 +232,7 @@ Last year, some researchers at OpenAI released a short paper called
     axes are not quite the most relevant projection), though we do find them very suggestive...
     <br><br>
 
-    <h2>Our Theory (somewhat speculative)</h2>
+    <h2>Our Theory (speculative, a bit beyond the scope of the paper)</h2>
 
     For any given feedforward neural network, the "early layers" and the "late layers" are 
     engaged in a kind of cooperative game. The "early layers" transform the network's input into some representation,
@@ -246,7 +257,8 @@ Last year, some researchers at OpenAI released a short paper called
     internal operation to be learned. In particular, if the "late layers" learn much faster than the "early layers", then they will 
     quickly fit bad, random, approximately static representations (given by the "early layers" at initialization), resulting in overfitting. 
     On the other hand, if the "early layers" learn much faster than the "late layers", then they will quickly find (weird) representations 
-    which when thrown through the bad, random, approximately static "later layers" will produce the desired outputs. This will also result in 
+    which when thrown through the bad, random, approximately static "later layers" will produce the desired outputs (inverting the "later layers").
+     This will also result in 
     overfitting.
     
     <!-- If
@@ -294,9 +306,9 @@ Last year, some researchers at OpenAI released a short paper called
 
     <h2>A Toy Model and Effective Theory</h2>
 
-    The basic picture we've laid out is that models (1) find a good representation of inputs (2) internally perform something akin to 
-    the target binary operation with these representaitons and (3) fit the result to the desired output. It would be cool to mechanistically
-    understand our models to check this, but we haven't done this yet. Instead, we developed a toy model capturing this basic structure and 
+    The basic picture we've laid out is that maybe models (1) find a good representation of inputs (2) internally perform something akin to 
+    the target binary operation with these representaitons and (3) map the result to the desired output. It would be cool to mechanistically
+    understand our models to check this, though we haven't done this yet. Instead, we developed a toy model capturing this basic structure and 
     studied its properties. 
     <br><br>
 
@@ -310,30 +322,91 @@ Last year, some researchers at OpenAI released a short paper called
     $\bm{E}_0, \bm{E}_1, \bm{E}_2, \ldots, \bm{E}_{p-1}$ evenly spaced along a single line, i.e. $\bm{E}_k = \bm{v} + k \bm{w}$ for any 
     $\bm{v}, \bm{w} \in \mathbb{R}^{d_\text{in}}$, then if the model achieves zero error on training sample $((i, j), i+j)$, it will 
     generalize to any other sample $((m, n), m + n)$ for which $m + n = i + j$. This is because the input to the decoder will be 
-    the same for these two samples. 
+    the same for these two samples. To say it again: in this toy model, generalization comes directly from learning structured representations.
     <br><br>
 
     What do the learning dynamics of the embeddings $\bm{E}_{*}$ look like for this toy model? What determines whether the model 
     learns to arrange the $\bm{E}_{*}$ along a line? We develop an effective theory for the learning dynamics of embeddings. 
     The way that the $\bm{E}_{*}$ evolve over training, in practice, will depend on the decoder and the relative learning rate 
-    between the $\bm{E}_{*}$ and ${\rm Dec}$. As discussed earlier, if the decoder learning rate is much faster than the learning 
+    between the $\bm{E}_{*}$ and ${\rm Dec}$, as well as other optimization hyperparameters and regularization. 
+    As discussed earlier, if the decoder learning rate is much faster than the learning 
     rate for the embeddings, the model will likely overfit to the embeddings at initialization. Unfortunately, in the effective 
     theory presented in this first paper, we have not incorporated any facts about the decoder into our effective theory. This 
     means that we can't yet analytically predict how learning hyperparameters determine grokking -- we can't 
     compute the phase diagram of learning behavior, shown above, analytically. However, our effective theory does seem to 
-    predict the dependence of grokking on the training set size, question #2 discussed at the beginning. 
+    predict the dependence of grokking on the training set size, question #2 mentioned earlier.
     <br><br>
     
     We model the learning dynamics of the $\bm{E}_{*}$ as evolving under an <i>effective loss</i> $\ell_\text{eff}$. This effective loss 
-    basically measures how well/poorly the embeddings are arranged along a line. It is defined as:
-    $$ \ell_\text{eff} = \frac{1}{Z_0} \sum_{(i, j, m, n) \in P_0(D)} |(\bm{E}_i + \bm{E}_j) - (\bm{E}_m + \bm{E}_n)| $$
+    basically measures how well/poorly the embeddings are arranged along a line. We define it as:
+    $$ \ell_\text{eff} = \frac{1}{Z_0} \sum_{(i, j, m, n) \in P_0(D)} |(\bm{E}_i + \bm{E}_j) - (\bm{E}_m + \bm{E}_n)|^2 $$
     where $Z_0 = \sum_k |\bm{E}_k|^2 $, and $P_0(D)$ is defined as:
-    $$ P_0(D) = \{ (i, j, m, n) : (i, j) \in D, (m, n) \in D,  i + j = m + n \} $$
+    $$ 
+        P_0(D) = \{ (i, j, m, n) :
+             (i, j), (m, n) \in D,  i + j = m + n \} 
+       
+    $$
     where $D$ is the training dataset. $P_0(D)$ consists of pairs of elements in the training dataset which have the same sum. 
     We see that if the $\bm{E}_{*}$ are evenly-spaced on a line, then $\bm{E}_i + \bm{E}_j = \bm{E}_m + \bm{E}_n$ for
-    $(i, j, m, n) \in P_0(D)$, and thus $\ell_\text{eff} = 0$. The learning dynamics under this loss are simply:
+    $(i, j, m, n) \in P_0(D)$, and thus $\ell_\text{eff} = 0$. The learning dynamics under this loss are:
+    
     $$ \frac{d\bm{E}_i}{dt} = -\eta \frac{\partial \ell_\text{eff}}{\partial \bm{E}_i} $$
+    
+    First, we find that, despite all simplifications and assumptions of the effective theory, that the dynamics of 
+    the $\bm{E}_{*}$ (or rather normalized versions of them) under the effective loss seems fairly similar to the dynamics 
+    under real training with a decoder. Below we show a comparison of the two dynamics for 1D embeddings $d_\text{in} = 1$
+   
+    <br><br>
+    <img src="assets/figures/emb1dtimeseriescompare.jpg">
+    <figcaption>From Figure 4 of <a href="https://arxiv.org/abs/2205.10343">our paper</a>, comparing the learning dynamics of 
+        the $\bm{E}_{*}$ for the effective theory vs true dynamics where the loss is backpropagated through some decoder
+        which is itself changing over time.
+    </figcaption>
+    <br>
 
+    Second, when we vary the size of the training dataset $D$, we find that the effective theory predicts the likelihood that 
+    the model will generalize -- that it will learn to arrange the embeddings along a line -- decreases rapidly once you go below 
+    a train set fraction of 0.4:
+
+    <br><br>
+    <img src="assets/figures/probofgeneralizingcompare.jpg">
+    <figcaption>From Figure 4 of <a href="https://arxiv.org/abs/2205.10343">our paper</a>, comparing the empirical 
+        probability of generalizing (for the toy model) for real training runs vs under the dynamics 
+        of the effective loss. 
+    </figcaption>
+    <br>
+    
+    Admittedly, what we are more interested in is the <i>time</i> that it takes to generalize, not the <i>probability</i> of 
+    generalizing at all. I won't give the full argument here, but from our effective theory one can perform an analysis 
+    of the eigenvalues of a certain matrix $H$ which governs the dynamics, and find that the first nonzero eigenvalue
+    $\lambda_3$ corresponds to the speed at which learning happens, and that $\lambda_3$ is quite sensitive to the train 
+    set fraction.
+    
+    <h2>Related Work</h2>
+
+    Some writers had made informal posts with conjectures about grokking before our paper. Beren Millidge had 
+    <a href="https://beren.io/2022-01-11-Grokking-Grokking/">an interesting post</a> where he discussed learning, during 
+    overfitting, as a random walk on an "optimal manifold" in parameter space, which eventually hits a region which generalizes. He 
+    discusses weight decay as a prior, when one views SGD as MCMC, and makes a connection to Solomonoff induction. Rohin Shah also made 
+    some <a href="https://www.alignmentforum.org/posts/zvWqPmQasssaAWkrj/an-159-building-agents-that-know-how-to-experiment-by#DEEP_LEARNING_">
+    conjectures in the Alignment Newsletter</a> about how functions which memorize will likely be more complicated and therefore 
+    provide worse loss for a given level of expressivitiy than functions which generalize. Then if the training during overfitting is 
+    mostly a random walk, once it finds a function which generalizes it will stay there because loss will be lower. <br><br>
+
+    A more involved explanation was offered by Quintin Pope in his LessWrong post <a href="https://www.lesswrong.com/posts/JFibrXBewkSDmixuo/hypothesis-gradient-descent-prefers-general-circuits">
+    Hypothesis: gradient descent prefers general circuits</a>. He envisions the training process as one in which "shallow" circuits are slowly
+    <i>unified</i> into more "general" circuits which generalize. I find this description to be pretty intuitively appealing, though it has not 
+    been backed up yet by a deep mechanistic circuits-style analysis of real networks. Perhaps our observations about structure emerging in 
+    the PCA of embeddings will be useful in identifying these general circuits. As discussed earlier, a lot is involved in a network learning 
+    a general circuit, one which effectively implements the target operation. A necessary condition seems to be that good representations are 
+    learned, and we have modeled this aspect of learning a general circuit, of representation learning, with a simplified effective theory. 
+    This allowed us to analytically study the effect of the training data fraction on learning. 
+    But we do not yet have a full account of how these general circuits are formed.
+
+    
+    <!-- with this effective theory of the training dynamics, we can vary  
+    
+    when we model the dynamics of the embeddings $E_{*}$ under this loss, that they  -->
 
 
     <!-- simpler and achieve lower loss.  -->
@@ -355,19 +428,19 @@ Last year, some researchers at OpenAI released a short paper called
 
 
     
-    <br><br><br><br>
+    <!-- <br><br><br><br>
     Consider partition a feedforward network into two parts -- the "early layers" and the "late layers". At what 
     layer you draw this line is arbitrary, though there are likely more and less interesting ways 
     one can think of the early layers and the late layers as being engaged 
     
     of the parts of the network before 
     this layer and the parts of the network after this layer are engaged in a kind of cooperative game. 
-    The first part 
+    The first part  -->
 
 
 
     <!-- is that  -->
-
+<!-- 
     <br><br><br><br>
     
     but it may still be suggestive.
@@ -378,7 +451,7 @@ Last year, some researchers at OpenAI released a short paper called
     one has to be a bit 
     careful in taking it too seriously, since we find that other orderings are sometimes learned with different seeds. These orderings
     are still structured, but have a different spacing (e.g. consecutive embeddings are spaced about 1/4th of the circle apart instead of 1/59th).
-
+ -->
 
     
     <!-- However, if instead of 
@@ -394,33 +467,14 @@ Last year, some researchers at OpenAI released a short paper called
     <div id="bar"></div> 
     <h2>Footnotes</h2>
     
-    <sup id="fn1">1. There are some slight differences, but these are incidental and were not chosen to influence results.<a href="#ref1" title="Jump back to footnote 1 in the text.">↩</a></sup>
+    <sup id="fn1">1. Our transformers have a sequence length of just two, "< a > < b >", rather than having a longer sequence length 
+    in which all the other tokens are constant for all samples.<a href="#ref1" title="Jump back to footnote 1 in the text.">↩</a></sup>
     <br>
     <sup id="fn2">2. The original paper on grokking from Power et al. showed a visualization of embeddings with t-SNE,
         but we find the PCA projections to be more interesting. We also track how structure in the embeddings changes over training,
-        whereas they just showed embeddings on the trained network.<a href="#ref2" title="Jump back to footnote 2 in the text.">↩</a></sup>
+        whereas they just showed embeddings of the trained network.<a href="#ref2" title="Jump back to footnote 2 in the text.">↩</a></sup>
     
     
-    <br><br><br><br><br>
-    In this paper, they observed something surprising: neural
-    networks which generalize <i>after</i> overfitting.
-
-<br>
-$$ \Gamma(s) = \int_0^\infty t^{s-1} e^{-t} dt $$
-Vestibulum ac risus ut elit placerat congue quis et nisi. Mauris a tortor in turpis pellentesque varius eget faucibus neque. In dui orci, rutrum id tellus non, ultrices pellentesque tortor. Cras ornare, enim in iaculis auctor, ante leo efficitur ligula, sit amet convallis erat arcu vulputate velit. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Fusce sodales felis sapien, at lacinia sapien congue vel. Nulla facilisi. Morbi id cursus velit, at rhoncus metus. Phasellus pellentesque imperdiet magna, accumsan mollis risus auctor sit amet. Aliquam efficitur, est sit amet iaculis porta, orci purus finibus orci, fringilla pulvinar orci sapien ac sapien. Aenean sit amet neque tortor. Donec nisi arcu, suscipit sit amet neque at, iaculis sollicitudin nisl. Morbi at porta diam.
-<br><br>
-Etiam mollis, libero et mollis tempus, justo metus tincidunt urna, tincidunt commodo lectus neque in magna. Aenean in nunc ut ipsum bibendum commodo nec ullamcorper diam. Pellentesque nec enim metus. Fusce blandit, felis eget luctus pharetra, metus velit sagittis dui, vel tempus sapien leo at felis. Phasellus ullamcorper, ligula semper laoreet cursus, elit risus venenatis justo, sed tempor justo velit eu urna. Pellentesque feugiat nisl at rhoncus malesuada. Fusce vehicula diam tellus, eget elementum ante sodales et. Quisque tincidunt tellus posuere lectus condimentum euismod. Praesent sodales pellentesque vehicula. Sed fringilla gravida quam vitae consequat.
-<br><br>
-In sollicitudin, dolor et maximus accumsan, quam mauris dignissim eros, sed finibus lectus ipsum eget sem. Aliquam vel metus orci. Sed maximus finibus finibus. Vivamus quis nunc quis erat tristique condimentum vitae ac dui. Pellentesque elementum turpis id venenatis facilisis. In pellentesque magna lectus, ac suscipit massa sollicitudin feugiat. Nulla sed risus quis lorem elementum luctus a a orci. Nam condimentum eros ac mi mollis maximus. Curabitur sed semper turpis, et commodo ipsum. Proin ut erat dictum, blandit ex et, pulvinar quam.
-<br><br>
-Cras id fringilla arcu. Vestibulum placerat mi metus, non gravida nulla cursus ac. Fusce in ornare erat, ac ullamcorper erat. Aliquam erat volutpat. Morbi sed erat ut libero porttitor semper. Proin pretium rutrum magna, dignissim vestibulum velit dignissim ac. Aenean sed malesuada orci, vitae dapibus tortor. Cras sit amet sapien ligula. Pellentesque sed consectetur justo. Quisque ultrices nulla lorem, sit amet congue sapien euismod sed. Phasellus sed nisi rutrum, lacinia lacus nec, congue dui. Maecenas lacinia eget eros sed ornare. Praesent vitae volutpat arcu. In fermentum diam elementum commodo tincidunt.
-<br><br>
-Nam quis fermentum turpis. Ut ut turpis euismod, ullamcorper neque quis, eleifend mauris. Maecenas sem nisl, efficitur at vehicula a, maximus a orci. Aliquam posuere porttitor lorem, nec sodales tellus efficitur sit amet. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam sed magna a lectus varius fringilla. Morbi laoreet, tortor vitae accumsan sollicitudin, nulla enim cursus felis, auctor tincidunt nisi sem ac arcu. Phasellus euismod pharetra quam, vitae pellentesque diam sagittis vitae. Mauris et finibus nibh, id porta tortor. Nulla eget purus et nisl cursus efficitur. Donec aliquet facilisis eros, ac ultrices dolor feugiat sed. Etiam posuere scelerisque metus, nec lacinia libero maximus at. Sed vitae ex nec lectus imperdiet consequat ut auctor sapien.
-<br><br>
-Pellentesque euismod eget augue vitae eleifend. Donec condimentum augue nisl, et elementum orci vestibulum eget. Aenean vitae ante et augue tincidunt consequat. Sed malesuada quam felis, id rhoncus dui bibendum laoreet. Praesent pellentesque, ipsum nec pellentesque dictum, tellus ipsum faucibus odio, id venenatis sapien nisl eget elit. Fusce aliquam odio a velit laoreet aliquam. Curabitur condimentum lorem nec tellus rhoncus ornare.
-    
-</p> 
-
     
 </div>
 

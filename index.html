@@ -65,7 +65,9 @@
 -------------------------->
 <div class="content"> 
 
-<h1>Understanding <i>grokking</i> in terms of representation learning dynamics <div style=color:red;>[in progress]</div></h1>
+<h1>Understanding <i>grokking</i> in terms of representation learning dynamics
+    <!-- <div style=color:red;>[in progress]</div> -->
+    </h1>
 
 <subtitle>
     This post is based on the preprint <a href="https://arxiv.org/abs/2205.10343">Towards Understanding 
@@ -78,7 +80,7 @@
             <!-- <b>Epistemic Status</b>:  -->
 
 
-            You are seeing v0 of this post, last updated 2022-06-17. It could change over time as we continue to think about grokking.
+            You are seeing v1 of this post, last updated 2022-06-18. It could change over time as we continue to think about grokking.
 </subtitle>
 
 <p>
@@ -181,7 +183,7 @@ Last year, some researchers at OpenAI released a short paper called
     </figcaption>
     <br>
 
-    We see something extremely cool when we do this: generalization is associated with a distinctive ring 
+    We see something interesting when we do this: generalization is associated with a distinctive ring 
     structure in the embeddings. Furthermore, the embeddings are very precisely ordered along the ring, looping back to 0 after 58. 
     Here is a video showing how the embeddings change throughout training:
     
@@ -288,7 +290,7 @@ Last year, some researchers at OpenAI released a short paper called
     perform the operation.  -->
     <br><br>
 
-    Theoretically, there are as many ways of arbitrarily dividing a network into "early layers" and "late layers" as there are 
+    In theory, there are as many ways of arbitrarily dividing a network into "early layers" and "late layers" as there are 
     layers in the network. For the Transformer setup, we consider the learned embeddings to be the "early layers" and the 
     whole decoder to be the "late layers". 
     Based on the picture presented above, we should expect that the decoder learning rate, relative to the learning rate that the 
@@ -308,7 +310,7 @@ Last year, some researchers at OpenAI released a short paper called
     <h2>A Toy Model and Effective Theory</h2>
 
     The basic picture we've laid out is that maybe models (1) find a good representation of inputs (2) internally perform something akin to 
-    the target binary operation with these representaitons and (3) map the result to the desired output. It would be cool to mechanistically
+    the target binary operation with these representations and (3) map the result to the desired output. It would be cool to mechanistically
     understand our models to check this, though we haven't done this yet. Instead, we developed a toy model capturing this basic structure and 
     studied its properties. 
     <br><br>
@@ -331,7 +333,7 @@ Last year, some researchers at OpenAI released a short paper called
     The way that the $\bm{E}_{*}$ evolve over training, in practice, will depend on the decoder and the relative learning rate 
     between the $\bm{E}_{*}$ and ${\rm Dec}$, as well as other optimization hyperparameters and regularization. 
     As discussed earlier, if the decoder learning rate is much faster than the learning 
-    rate for the embeddings, the model will likely overfit to the embeddings at initialization. Unfortunately, in the effective 
+    rate for the embeddings, the model will likely overfit to the embeddings at initialization. In the effective 
     theory presented in this first paper, we have not incorporated any facts about the decoder into our effective theory. This 
     means that we can't yet analytically predict how learning hyperparameters determine grokking -- we can't 
     compute the phase diagram of learning behavior, shown above, analytically. However, our effective theory does seem to 
@@ -345,7 +347,6 @@ Last year, some researchers at OpenAI released a short paper called
     $$ 
         P_0(D) = \{ (i, j, m, n) :
              (i, j), (m, n) \in D,  i + j = m + n \} 
-       
     $$
     where $D$ is the training dataset. $P_0(D)$ consists of pairs of elements in the training dataset which have the same sum. 
     We see that if the $\bm{E}_{*}$ are evenly-spaced on a line, then $\bm{E}_i + \bm{E}_j = \bm{E}_m + \bm{E}_n$ for
@@ -392,7 +393,7 @@ Last year, some researchers at OpenAI released a short paper called
     some <a href="https://www.alignmentforum.org/posts/zvWqPmQasssaAWkrj/an-159-building-agents-that-know-how-to-experiment-by#DEEP_LEARNING_">
     conjectures in the Alignment Newsletter</a> about how functions which memorize will likely be more complicated and therefore 
     provide worse loss for a given level of expressivitiy than functions which generalize. Then if the training during overfitting is 
-    mostly a random walk, once it finds a function which generalizes it will stay there because loss will be lower. <br><br>
+    mostly a random walk, once it finds a function which generalizes it will stay there because the loss will be lower. <br><br>
 
     A more involved explanation was offered by Quintin Pope in his LessWrong post <a href="https://www.lesswrong.com/posts/JFibrXBewkSDmixuo/hypothesis-gradient-descent-prefers-general-circuits">
     Hypothesis: gradient descent prefers general circuits</a>. He envisions the training process as one in which "shallow" circuits are slowly
@@ -410,7 +411,7 @@ Last year, some researchers at OpenAI released a short paper called
     
     In terms of question (1), about why generalization happens at all, I think our observations about 
     structured representations being associated with generalization suggests that the network is doing something very clever internally. 
-    It is probably doing something like internally implementing the target operation (otherwise how would the network generalize),
+    It is probably doing something like internally implementing the target operation (otherwise how would it generalize?),
      but we don't yet understand mechanistically how it does this. By the way, embeddings arranged on a ring seem pretty typical 
      for many tasks, but the order changes. Here is non-modular addition, instead of mod 59:
 

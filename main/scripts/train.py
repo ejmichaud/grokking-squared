@@ -2,6 +2,10 @@
 # coding: utf-8
 """
 This script trains a transformer on algorithmic datasets, the setting of grokking.
+
+    TODO: Allow for other optimizers like SGD as an alternative to AdamW
+    TODO: Add option for full-model checkpoints or just embeddings
+    TODO: Make positional encodings optional? - DONE
 """
 
 from collections import defaultdict
@@ -54,11 +58,11 @@ def cfg():
     operators = ['+']
     p = 59
     optimization_steps = 100000
-    log_freq = math.ceil(optimization_steps / 1000)
     batch_size = -1                 # -1 -> entire dataset, 0 < batch_size < 1 -> fraction of dataset, batch_size > 1 -> batch_size
     n_layers = 2
     n_heads = 8
     d_model = 256
+    use_positional_encoding = True
     dropout = 0.0
     non_linearity = 'relu'          # 'relu' or 'gelu'
     training_data_fraction = 0.8
@@ -71,6 +75,9 @@ def cfg():
     embedding_weight_decay = 0.0
     decoder_weight_decay = 0.0
     eps = 1e-8
+
+    log_freq = math.ceil(optimization_steps / 500)
+    embeddings_save_freq = 0
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     dtype = torch.float32
@@ -93,11 +100,11 @@ def cfg():
 def run(operators,
         p,
         optimization_steps,
-        log_freq, 
         batch_size, 
         n_layers, 
         n_heads, 
-        d_model, 
+        d_model,
+        use_positional_encoding,
         dropout,
         non_linearity,
         training_data_fraction,
@@ -108,6 +115,8 @@ def run(operators,
         embedding_weight_decay,
         decoder_weight_decay,
         eps,
+        log_freq,
+        embeddings_save_freq,
         device,
         dtype,
         seed,
@@ -141,7 +150,8 @@ def run(operators,
         max_context_len=4, # TODO: make this a configurable parameter?
         vocab_len=dataset.ntokens,
         non_linearity=non_linearity,
-        weight_noise=0 # TODO: make this configurable?
+        weight_noise=0, # TODO: make this configurable?
+        use_positional_encoding=use_positional_encoding
     ).to(device)
 
     optimizer = torch.optim.AdamW(
@@ -244,6 +254,10 @@ def run(operators,
                 ex.info['log_steps'].append(steps)
                 pbar.set_description("{0:2.1f}% | {1:2.1f}%".format(ex.info['total']['train']['accuracy'][-1] * 100, ex.info['total']['val']['accuracy'][-1] * 100))
 
+            if embeddings_save_freq and steps % embeddings_save_freq == 0:
+                with torch.no_grad():
+                    torch.save(model.embedding.weight, f"/tmp/embd_{steps}.pt")
+                    ex.add_artifact(f"/tmp/embd_{steps}.pt")
             optimizer.zero_grad()
             equation = equation.to(device)
             answer = answer.to(device)

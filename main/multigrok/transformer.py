@@ -311,6 +311,7 @@ class Transformer(nn.Module):
         vocab_len: int = 2000,
         non_linearity: str = "relu",
         weight_noise: float = 0.0,
+        use_positional_encoding = True
     ) -> None:
         super().__init__()
 
@@ -320,6 +321,7 @@ class Transformer(nn.Module):
         self.dropout = dropout
         self.max_context_len = max_context_len
         self.non_linearity = non_linearity
+        self.use_positional_encoding = use_positional_encoding
 
         self.vocab_len = vocab_len
 
@@ -368,7 +370,10 @@ class Transformer(nn.Module):
         embedded = self.embedding(indices)
 
         pe = pe.to(embedded.dtype) # fix issue with positional embeddings changing dtype to float64
-        return pe + embedded
+        if self.use_positional_encoding:
+            return pe + embedded
+        else:
+            return embedded
 
     def forward(
         self,

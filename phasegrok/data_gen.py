@@ -1,7 +1,7 @@
 # %%
 import numpy as np
 from itertools import combinations_with_replacement, product
-from .utils import get_parallelograms
+from phasegrok.utils import get_parallelograms
 from torch.utils.data import DataLoader, TensorDataset
 import torch
 

@@ -1,3 +1,6 @@
+import random
+import numpy as np
+
 import torch
 from phasegrok.models import Decoder
 from phasegrok.config import args
@@ -32,6 +35,8 @@ Y = Y.long().to(args.device)
 
 
 def main():
+    random.seed(args.seed)
+    np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     out_classes = args.m if args.m > 1 else 2 * args.p - 1
     model = torch.nn.Sequential(

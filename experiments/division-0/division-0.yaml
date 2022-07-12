@@ -26,7 +26,6 @@ fixed:
   use_positional_encoding: True
   dropout: 0.0
   non_linearity: 'relu'          # 'relu' or 'gelu'
-  training_data_fraction: 0.5
 
   halve_abelian: False
   only_input_tokens: False

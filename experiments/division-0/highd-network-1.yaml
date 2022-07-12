@@ -1,0 +1,94 @@
+
+seml:
+  executable: scripts/train.py
+  name: division-0
+  output_dir: experiments/division-0/log
+  project_root_dir: ../../
+  conda_environment: grok
+
+slurm:
+  experiments_per_job: 1
+  sbatch_options:
+    gres: gpu:1       # num GPUs
+    mem: 5G           # memory
+    cpus-per-task: 2  # num cores
+    time: 0-04:00     # max time, D-HH:MM
+
+fixed:
+  MAX_TRAIN_ITERS: 20000
+  N_TEST_POINTS: 30000
+  TEST_COMPACTIFICATION: 0.8
+  MAX_BATCH_SIZE: 30000
+  spreadsheet: "/om2/user/ericjm/precision-ml/equations.csv"
+
+grid:
+  eqn:
+    type: choice
+    options:
+      - "I.10.7"   # 3d
+      - "I.30.5"   # 3d
+      - "I.8.14"   # 4d
+      - "I.39.22"  # 4d
+      - "I.44.4"   # 5d
+      - "I.12.11"  # 5d
+      - "II.6.15a" # 6d
+      - "I.11.19"  # 6d
+  activation:
+    type: choice
+    options:
+      - "ReLU"
+      - "Tanh"
+  lr:
+    type: choice
+    options:
+      - 0.001
+  seed:
+    type: choice
+    options:
+      - 0
+      - 1
+      - 2
+      - 3
+
+depth2:
+  fixed:
+    depth: 2
+  grid:
+    width:
+      type: choice
+      options:
+        - 51
+        - 204
+        - 819
+        - 3276
+        - 13107
+        - 52428
+
+depth3:
+  fixed:
+    depth: 3
+  grid:
+    width:
+      type: choice
+      options:
+        - 13
+        - 29
+        - 61
+        - 125
+        - 253
+        - 509
+
+depth4:
+  fixed:
+    depth: 4
+  grid:
+    width:
+      type: choice
+      options:
+        - 9
+        - 20
+        - 43
+        - 88
+        - 179
+        - 360
+

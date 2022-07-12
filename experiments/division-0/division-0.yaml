@@ -39,9 +39,6 @@ fixed:
   log_freq: 500
   embeddings_save_freq: 0
   
-  device: 'cuda:0'
-  dtype: torch.float32
-
 
 grid:
   training_data_fraction:

@@ -1,0 +1,66 @@
+
+seml:
+  executable: scripts/train.py
+  name: division-0
+  output_dir: experiments/division-0/log
+  project_root_dir: ../../
+  conda_environment: torch-cuda
+
+slurm:
+  experiments_per_job: 1
+  max_simultaneous_jobs: 45
+  sbatch_options:
+    gres: gpu:1       # num GPUs
+    mem: 5G           # memory
+    cpus-per-task: 2  # num cores
+    time: 0-05:00     # max time, D-HH:MM
+
+fixed:
+  operators: ['/']
+  p: 97
+  optimization_steps: 1000000
+  batch_size: 512                 # -1 -> entire dataset, 0 < batch_size < 1 -> fraction of dataset, batch_size > 1 -> batch_size
+  n_layers: 2
+  n_heads: 4
+  d_model: 128
+  use_positional_encoding: True
+  dropout: 0.0
+  non_linearity: 'relu'          # 'relu' or 'gelu'
+  training_data_fraction: 0.5
+
+  halve_abelian: False
+  only_input_tokens: False
+
+  embedding_lr: 1e-3
+  decoder_lr: 1e-3
+  embedding_weight_decay: 0.0
+  decoder_weight_decay: 0.0
+  eps: 1e-8
+
+  log_freq: 500
+  embeddings_save_freq: 0
+  
+  device: 'cuda:0'
+  dtype: torch.float32
+
+
+grid:
+  training_data_fraction:
+    type: choice
+    options:
+      - 0.9
+      - 0.8
+      - 0.7
+      - 0.6
+      - 0.5
+      - 0.4
+      - 0.3
+      - 0.2
+  seed:
+    type: choice
+    options:
+      - 0
+      - 1
+      - 2
+      - 3
+

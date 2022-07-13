@@ -3,9 +3,12 @@
 """
 This script trains a transformer on algorithmic datasets, the setting of grokking.
 
-    TODO: Allow for other optimizers like SGD as an alternative to AdamW
+    TODO: Allow for other optimizers like SGD as an alternative to AdamW - DONE
     TODO: Add option for full-model checkpoints or just embeddings
+            This should save to a given directory, and not use Mongo.
     TODO: Make positional encodings optional? - DONE
+    TODO: Add verbosity option to turn off tqdm (to limit size of log files) - DONE
+    TODO: Add option to stop experiment immediately after it hits 99% val accuracy
 """
 
 from collections import defaultdict
@@ -40,6 +43,11 @@ def cycle(iterable):
         for x in iterable:
             yield x
 
+optimizer_dict = {
+    'AdamW': torch.optim.AdamW,
+    'Adam': torch.optim.Adam,
+    'SGD': torch.optim.SGD
+}
 
 # --------------------------
 #    ,-------------.
@@ -58,6 +66,7 @@ def cfg():
     operators = ['+']
     p = 59
     optimization_steps = 100000
+    stop_early = False
     batch_size = -1                 # -1 -> entire dataset, 0 < batch_size < 1 -> fraction of dataset, batch_size > 1 -> batch_size
     n_layers = 2
     n_heads = 8
@@ -70,6 +79,7 @@ def cfg():
     halve_abelian = False
     only_input_tokens = False
 
+    optimizer = 'AdamW'
     embedding_lr = 1e-3
     decoder_lr = 1e-3
     embedding_weight_decay = 0.0
@@ -77,6 +87,7 @@ def cfg():
     eps = 1e-8
 
     log_freq = math.ceil(optimization_steps / 500)
+    verbose = False
     embeddings_save_freq = 0
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -100,6 +111,7 @@ def cfg():
 def run(operators,
         p,
         optimization_steps,
+        stop_early,
         batch_size, 
         n_layers, 
         n_heads, 
@@ -110,12 +122,14 @@ def run(operators,
         training_data_fraction,
         halve_abelian,
         only_input_tokens,
+        optimizer,
         embedding_lr,
         decoder_lr,
         embedding_weight_decay,
         decoder_weight_decay,
         eps,
         log_freq,
+        verbose,
         embeddings_save_freq,
         device,
         dtype,
@@ -154,7 +168,8 @@ def run(operators,
         use_positional_encoding=use_positional_encoding
     ).to(device)
 
-    optimizer = torch.optim.AdamW(
+    assert optimizer in optimizer_dict, f"Unrecognized optimizer choice: {optimizer}"
+    optimizer = optimizer_dict[optimizer](
         [{
             "params": model.embedding.parameters(),
             "lr": embedding_lr,
@@ -197,7 +212,7 @@ def run(operators,
 
     pos = dataset.sequence_length - 1
     steps = 0
-    with tqdm(total=optimization_steps) as pbar:
+    with tqdm(total=optimization_steps, disable=not verbose) as pbar:
         for equation, answer in islice(cycle(train_loader), optimization_steps):
             
             if steps % log_freq == 0:
@@ -252,6 +267,8 @@ def run(operators,
                     ex.info['total']['val']['loss'].append(sum(ops_losses.values()) / sum(ops_totals.values()))
                     ex.info['total']['val']['accuracy'].append(sum(ops_accuracies.values()) / sum(ops_totals.values()))
                 ex.info['log_steps'].append(steps)
+                if stop_early and ex.info['total']['val']['accuracy'][-1] > 0.98:
+                    return
                 pbar.set_description("{0:2.1f}% | {1:2.1f}%".format(ex.info['total']['train']['accuracy'][-1] * 100, ex.info['total']['val']['accuracy'][-1] * 100))
 
             if embeddings_save_freq and steps % embeddings_save_freq == 0:

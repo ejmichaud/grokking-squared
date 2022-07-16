@@ -24,7 +24,7 @@ VALID_OPERATORS = {
     "x**2+y**2+x*y_mod_p": lambda x, y, p: (x**2 + y**2 + x*y) % p,
     "x**2+y**2+x*y+x_mod_p": lambda x, y, p: (x**2 + y**2 + x*y + x) % p,
     "x**3+x*y_mod_p": lambda x, y, p: (x**3 + x*y) % p,
-    "x**3+x*y**2+y_mod_p": lambda x, y, p: (x**3 + x*(y**2) + y)
+    "x**3+x*y**2+y_mod_p": lambda x, y, p: (x**3 + x*(y**2) + y) % p
 }
 
 ABELIAN_OPERATORS = [

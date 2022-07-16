@@ -135,8 +135,8 @@ def run(operators,
         dtype,
         seed,
         _log):
-
-    operators = list(operators)
+    if type(operators) is not str:
+        operators = list(operators)
     
     torch.set_default_dtype(dtype)
     torch.manual_seed(seed)
@@ -155,7 +155,7 @@ def run(operators,
     else:
         raise Exception(f"Invalid batch_size config {batch_size}.")
     train_loader = torch.utils.data.DataLoader(train, batch_size=bs, shuffle=True)
-
+    
     model = Transformer(
         n_layers=n_layers,
         n_heads=n_heads,
@@ -216,9 +216,8 @@ def run(operators,
         for equation, answer in islice(cycle(train_loader), optimization_steps):
             
             if steps % log_freq == 0:
-                eval_loss_fn = nn.CrossEntropyLoss(reduction='sum')
                 with torch.no_grad():
-
+                    eval_loss_fn = nn.CrossEntropyLoss(reduction='sum')
                     # compute train metrics
                     train_evaluation_loader = torch.utils.data.DataLoader(train, batch_size=min(500, len(train)), shuffle=False)
                     ops_losses = defaultdict(float)

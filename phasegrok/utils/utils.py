@@ -13,7 +13,24 @@ from matplotlib.markers import MarkerStyle
 
 # Matplotlib
 
+def gen_log_space(limit, n):
+    result = [1]
+    if n>1:  # just a check to avoid ZeroDivisionError
+        ratio = (float(limit)/result[-1]) ** (1.0/(n-len(result)))
+    while len(result)<n:
+        next_value = result[-1]*ratio
+        if next_value - result[-1] >= 1:
+            # safe zone. next_value will be a different integer
+            result.append(next_value)
+        else:
+            # problem! same integer. we need to find next_value by artificially incrementing previous value
+            result.append(result[-1]+1)
+            # recalculate the ratio so that the remaining values will scale correctly
+            ratio = (float(limit)/result[-1]) ** (1.0/(n-len(result)))
+    # round, re-adjust to 0 indexing (i.e. minus 1) and return np.uint64 array
+    return np.array(list(map(lambda x: round(x)-1, result)), dtype=np.uint64)
 
+    
 def make_path(m):
     ms = MarkerStyle(m)
     return ms.get_path().transformed(ms.get_transform())
@@ -102,11 +119,12 @@ class Logger:
         self.model = model
         self.hparam_dict = args.__dict__ if args is not None else hparam_dict
         self.overwrite = overwrite
-        if self.overwrite:
-            if os.path.exists(self.log_path):
-                print("Overwriting", self.log_path)
-                os.system(f"trash {self.log_path}")
-            os.makedirs(self.log_path)
+        if not self.debug:
+            if self.overwrite:
+                if os.path.exists(self.log_path):
+                    print("Overwriting", self.log_path)
+                    os.system(f"trash {self.log_path}")
+                os.makedirs(self.log_path)
 
     def _log_hyperparameters(self,):
         if self.debug:

@@ -11,6 +11,7 @@ from phasegrok.utils import Logger, get_loss
 from phasegrok.utils.modDivide import modDivide
 from phasegrok.esam import ESAM
 import optuna
+import os
 
 # args is the configuration environment. The defaults are in config.py
 
@@ -138,19 +139,26 @@ if __name__ == "__main__":
     if args.tune:
 
         def objective(trial):
-            # args.__dict__["lr_rep"] = trial.suggest_loguniform("lr_rep", 1e-5, 1e-1)
-            # args.__dict__["lr_decoder"] = trial.suggest_loguniform(
-            #     "lr_decoder", 1e-4, 1e-1)
+            args.__dict__["lr_rep"] = trial.suggest_loguniform("lr_rep", 1e-3, 1e-1)
+            args.__dict__["lr_decoder"] = trial.suggest_loguniform(
+                "lr_decoder", 1e-3, 1e-2)
             # args.__dict__["weight_decay"] = trial.suggest_loguniform(
             #     "weight_decay", 1e-5, 0.1)
             # args.__dict__["dropout"] = trial.suggest_loguniform("dropout", 1e-3, 1e-1)
             # args.__dict__["decoder_width"] = trial.suggest_int("decoder_width", 10, 100)
-            args.__dict__["seed"] = trial.suggest_int("seed", 0, 1000)
+            # args.__dict__["seed"] = trial.suggest_int("seed", 0, 1000)
             test_loss, test_acc, *_ = main()
             return test_acc
 
-        study = optuna.create_study(direction="maximize")
-        study.optimize(objective, n_trials=args.tune)
+        search_space = {'lr_decoder': np.exp(np.linspace(-4, -1, 10)),
+                        'lr_rep': np.exp(np.linspace(-4, -1, 10))}
+        if args.tune == -1:
+            study = optuna.create_study(sampler=optuna.samplers.GridSampler(search_space))
+            study.optimize(objective)
+        else:
+            study = optuna.create_study(direction="maximize")
+            study.optimize(objective, n_trials=args.tune)
+        # joblib.dump(study, "study.pkl")
         print("_________________________________________" * 2)
         # print("Done! Now training:")
         # print(study.best_params)

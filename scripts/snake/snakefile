@@ -1,0 +1,13 @@
+from os.path import join
+import glob
+from const import project_dir
+
+rule run_experiment:
+    input:
+        join(project_dir, 'experiments/{experiment_name}/{timestamp}/config.txt')
+    output:
+        join('experiments/{experiment_name}/{timestamp}/config.txt')
+    run:
+        'python run.py {input}'
+
+rule generate_config:

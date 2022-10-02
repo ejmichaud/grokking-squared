@@ -13,7 +13,8 @@ import numpy as np
 from tensorboard.backend.event_processing import event_accumulator
 from argparse import ArgumentParser
 from itertools import product
-from phasegrok.utils.utils import standardize, read_scalars, make_path
+from phasegrok.utils.utils import standardize, read_scalars, make_path, gen_log_space
+from tbparse import SummaryReader
 
 parser = ArgumentParser()
 parser.add_argument("--which", type=str, default="both",
@@ -22,6 +23,7 @@ parser.add_argument("--nskip", type=int, default=10,
                     help="how many frames to skip")
 parser.add_argument("--name", type=str, default=None)
 parser.add_argument("--plot-model", action="store_true", default=False)
+parser.add_argument("--fixed", action="store_true", default=False)
 
 args = parser.parse_args()
 
@@ -38,9 +40,9 @@ root = "/home/kitouni/projects/Grok/grokking-squared/runs/"
 # name = "0425-1356/modular-97-97" # 5e-5 decoder learning rate
 # name = "0426-1018/modular-97-97"  # 1e-5 decoder learning rate
 name = "modular-addition59-deep/0427-1456" #  one layer deeper decoder
-name = "modular-addition59-shallow/0427-1600" # this time actually shallow
-name = "modular-addition59-mlp/0429-1337"
-name = "modular-addition59-mlp/0429-1349"
+# name = "modular-addition59-shallow/0427-1600" # this time actually shallow
+# name = "modular-addition59-mlp/0429-1337"
+# name = "modular-addition59-mlp/0429-1349"
 name = args.name or name
 directory = os.path.join(root, name)
 
@@ -75,6 +77,7 @@ def animate(reducer, name, nskip=1):
     cmap = cm.get_cmap("viridis").reversed()
     embdding_colors = 'k' if args.plot_model else np.arange(n_repr)
     fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+    ax.set_axis_off()
     sc = ax.scatter(*np.ones((2, n_repr)), c=embdding_colors, #c=np.arange(n_repr),
                     cmap=cmap, s=100)
     text = ax.text(0., 1.01, "", transform=ax.transAxes, fontdict={"size": 12})
@@ -96,16 +99,21 @@ def animate(reducer, name, nskip=1):
         file = repr_files[i]
         representation = torch.load(file).cpu().numpy()
         if representation.shape[1] == 2 and args.plot_model:
-            reducer.fit_transform(representation)
-            transformed = representation
+            transformed = reducer.fit_transform(representation)
+
+            # transformed = representation
             grid_to_repr = grid * (transformed.max(0) - transformed.min(0)) + transformed.min(0)
             output = apply_model(grid_to_repr, model_files[i])
             output = (output - 0) / (n_repr - 1)
             heatmap.set_color(cmap_grid(output))
             
         else:
-            emb = standardize(representation)
-            transformed = reducer.fit_transform(emb)
+            # emb = standardize(representation)
+            emb = representation
+            if args.fixed:
+                transformed = reducer.transform(emb)
+            else:
+                transformed = reducer.fit_transform(emb)
         if isinstance(reducer, PCA):
             transformed = transformed[:, :2]
         transformed = (transformed - transformed.min(0)
@@ -118,8 +126,8 @@ def animate(reducer, name, nskip=1):
             p = reducer.explained_variance_ratio_
             entropy = -np.sum(p * np.log(p))
             dimension = np.exp(entropy)
-            title += f" S: {entropy:.2f}"
-            title += f" D: {dimension:.2f}"
+            # title += f" S: {entropy:.2f}"
+            # title += f" D: {dimension:.2f}"
 
         text.set_text(title)
         if representation.shape[1] == 2 and args.plot_model:
@@ -128,7 +136,8 @@ def animate(reducer, name, nskip=1):
             return sc, text
 
     print(f"now animating {name}")
-    range_obj = range(0, len(repr_files), nskip)
+    # range_obj = range(0, len(repr_files), nskip)
+    range_obj = gen_log_space(len(repr_files), len(repr_files) // nskip)
     tbar = tqdm(range_obj)
     animation = FuncAnimation(
         fig, update, frames=range_obj, repeat=False, blit=True)
@@ -140,20 +149,27 @@ def animate(reducer, name, nskip=1):
 
 def get_fps(nskip):
     if nskip <= 10:
-        return 60
+        return 10
     elif nskip < 100:
-        return 30
+        return 10
     else:
         return 2
 
 if __name__ == "__main__":
     nskip = args.nskip
     which = ["tsne", "pca"] if args.which == "both" else [args.which]
-    timestamp = args.name.split("/")[-1]
+    timestamp = args.name.split("/")[-1] if args.name is not None else None
     if "tsne" in which:
         tsne = TSNE(n_components=2, perplexity=40, n_iter=1000,
                     init="pca", learning_rate="auto", )
         animate(tsne, "-".join(name.split("/")[-3:-1]) + "_tsne", nskip=nskip)
     if "pca" in which:
-        pca = PCA()
-        animate(pca, "-".join(name.split("/")[-3:-1]) + f"_pca{nskip}-{timestamp}", nskip=nskip)
+        pca = PCA(n_components=2, svd_solver="full")
+        pca.fit(torch.load(repr_files[-1]).cpu().numpy())
+        name = "-".join(name.split("/")[-3:-1]) + f"_pca{nskip}"
+        if timestamp is not None:
+            name += f"_{timestamp}"
+        if args.fixed:
+            name += "_fixed"
+        animate(pca, name, nskip=nskip)
+        

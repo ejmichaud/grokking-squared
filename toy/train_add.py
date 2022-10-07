@@ -1,10 +1,6 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import scipy.linalg
-import scipy
 import copy
 
 # addition toy
@@ -189,8 +185,7 @@ def train_add(p=10,
     print("dof=0 means the linear repr is the unique repr, while dof>0 means existence of other reprs")
 
     # embedding input and output digits to random vectors at initialization, which are trainable.
-    reprs = torch.nn.parameter.Parameter((torch.rand(p,reprs_dim)-1/2)*init_scale_reprs)
-    reprs.to(device)
+    reprs = torch.nn.parameter.Parameter((torch.rand(p,reprs_dim)-1/2).to(device)*init_scale_reprs)
     
     labels_train = y_templates[out_id[train_id]].detach().clone().requires_grad_(True)
     in_id_train = inputs_id[train_id]
@@ -211,10 +206,8 @@ def train_add(p=10,
             self.l3 = nn.Linear(w, output_dim)
 
         def forward(self, x):
-            f = torch.nn.Tanh()
-            #f = torch.nn.LeakyReLU(0.2)
-            self.x1 = f(self.l1(x))
-            self.x2 = f(self.l2(self.x1))
+            self.x1 = torch.tanh(self.l1(x))
+            self.x2 = torch.tanh(self.l2(self.x1))
             self.x3 = self.l3(self.x2)
             return self.x3
 
@@ -232,8 +225,7 @@ def train_add(p=10,
             return self.out
 
     # initialize the decoder. init_scale_nn is the initialization scale.
-    model = DEC(input_dim=reprs_dim, output_dim=output_dim, w=width)
-    model.to(device)
+    model = DEC(input_dim=reprs_dim, output_dim=output_dim, w=width).to(device)
     for p_ in model.net.parameters():
         p_.data = p_.data * init_scale_nn
 
@@ -276,8 +268,8 @@ def train_add(p=10,
             loss_train = nn.CrossEntropyLoss()(outputs_train, torch.tensor(out_id_train[choice], dtype=torch.long))
             loss_test = nn.CrossEntropyLoss()(outputs_test, torch.tensor(out_id_test, dtype=torch.long))
             
-        losses_train.append(loss_train.detach().numpy())
-        losses_test.append(loss_test.detach().numpy())
+        losses_train.append(loss_train.item())
+        losses_test.append(loss_test.item())
         
         # update weights
         loss_train.backward()
@@ -292,11 +284,11 @@ def train_add(p=10,
         else:
             pred_train_id = torch.argmax(outputs_train, dim=1)
             pred_test_id = torch.argmax(outputs_test, dim=1)
-        acc_nn_train = np.mean(pred_train_id.detach().numpy() == out_id_train)
+        acc_nn_train = np.mean(pred_train_id.cpu().detach().numpy() == out_id_train)
         accs_train.append(acc_nn_train)
         
         outputs_test = model(reprs, in_id_test)
-        acc_nn_test = np.mean(pred_test_id.detach().numpy() == out_id_test)
+        acc_nn_test = np.mean(pred_test_id.cpu().detach().numpy() == out_id_test)
         accs_test.append(acc_nn_test)
 
         if not reach_acc_train:
@@ -310,7 +302,7 @@ def train_add(p=10,
                 iter_test = step
 
         if step % log_freq == 0:
-            print("step: %d  | loss: %.8f "%(step, loss_train.detach().numpy()))
+            print("step: %d  | loss: %.8f "%(step, loss_train.cpu().detach().numpy()))
 
         # normalized representations (zero mean, unit variance) 
         reprs_scale = (reprs-torch.mean(reprs,dim=0).unsqueeze(dim=0))/torch.std((reprs-torch.mean(reprs,dim=0).unsqueeze(dim=0)),dim=0,unbiased=True).unsqueeze(dim=0)
@@ -338,7 +330,6 @@ def train_add(p=10,
         # Given training set D and representation R after training, out theory can predict the test accuracy
         PR = []
         PR_id = []
-        count = 0
         for ii in range(P0_num):
             i, j = list(P0[ii])[0]
             m, n = list(P0[ii])[1]
@@ -361,13 +352,12 @@ def train_add(p=10,
             if flag == 1:
                 Dbar_P_id.append(i1)
                 
-        acc_pred = len(Dbar_P_id)/all_num
         acc_pred_test = (len(Dbar_P_id)-len(train_id))/len(test_id)
         
 
-        rqis.append(rqi)
-        reprss.append(copy.deepcopy(reprs.detach().numpy()))
-        reprss_scale.append(copy.deepcopy(reprs_scale.detach().numpy()))
+        rqis.append(rqi.item())
+        reprss.append(copy.deepcopy(reprs.cpu().detach().numpy()))
+        reprss_scale.append(copy.deepcopy(reprs_scale.cpu().detach().numpy()))
 
 
     if not reach_acc_train:
@@ -472,4 +462,4 @@ def train_add(p=10,
     return dic
     
 
-train_add(steps=5000, loss_type="MSE", train_num=45)
+#train_add(steps=5000, loss_type="MSE", train_num=45)

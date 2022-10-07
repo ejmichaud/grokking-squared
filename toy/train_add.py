@@ -3,6 +3,36 @@ import torch
 import torch.nn as nn
 import copy
 
+
+#--------------------------Neural Network---------------------------#
+class NET(nn.Module):
+    # 2 hidden layer MLP
+    def __init__(self, input_dim, output_dim, w):
+        super(NET, self).__init__()
+        self.l1 = nn.Linear(input_dim, w)
+        self.l2 = nn.Linear(w, w)
+        self.l3 = nn.Linear(w, output_dim)
+
+    def forward(self, x):
+        self.x1 = torch.tanh(self.l1(x))
+        self.x2 = torch.tanh(self.l2(self.x1))
+        self.x3 = self.l3(self.x2)
+        return self.x3
+
+class DEC(nn.Module):
+    def __init__(self, reprs_dim, output_dim, w):
+        super(DEC, self).__init__()
+        self.net = NET(reprs_dim, output_dim, w)
+
+    def forward(self, reprs, x_id):
+        self.add1 = reprs[x_id[:,0]]
+        self.add2 = reprs[x_id[:,1]]
+        # hard code addition
+        self.add = self.add1 + self.add2
+        self.out = self.net(self.add)
+        return self.out
+
+
 # addition toy
 def train_add(p=10,
           reprs_dim=1,
@@ -38,16 +68,12 @@ def train_add(p=10,
         output_dim = 2*p - 1
         print("Using cross entropy, setting output_dim=2p-1={}".format(output_dim))
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device("cpu")#torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('Using device:', device)
     
-    print("train_num={}".format(train_num))
-    print("seed={}".format(seed))
-    print("steps={}".format(steps))
     
     reprss = []
     reprss_scale = []
-    losses_nn = []
 
 
     y_templates = np.random.normal(0,1,size=(2*p-1, output_dim))*label_scale
@@ -56,7 +82,7 @@ def train_add(p=10,
     
     #-----------------------------Dataset------------------------------#
     # the full dataset contains p(p+1)/2 samples. Each sample has input (a, b).
-    all_num = int(p*(p+1)/2) # tfor addition (abelian group), we deem a+b and b+a the same sample
+    all_num = p*(p+1)//2 # for addition (abelian group), we deem a+b and b+a the same sample
     D0_id = []
     xx_id = []
     yy_id = []
@@ -92,10 +118,10 @@ def train_add(p=10,
         m,n = list(P0[i1])[1]
         if i+j==m+n:
             x = np.zeros(p,)
-            x[i] = x[i] + 1; 
-            x[j] = x[j] + 1; 
-            x[m] = x[m] - 1;
-            x[n] = x[n] - 1;
+            x[i] = x[i] + 1
+            x[j] = x[j] + 1
+            x[m] = x[m] - 1
+            x[n] = x[n] - 1
             A.append(x)
             eq_id = eq_id + 1
     A = np.array(A).astype(int)
@@ -134,7 +160,6 @@ def train_add(p=10,
     mat = A[P0D_id]
     eigs = np.linalg.eigh(np.matmul(np.transpose(mat),mat))[0]
     null_dim = np.sum(eigs < 1e-8)
-    lambda3 = eigs[2]
 
     # a parallelogram can be induced from P0(D) if it is linearly dependent on P0(D).
     # linear dependence <=> the rank (of mat) does not change after adding the parallelogram.
@@ -196,36 +221,8 @@ def train_add(p=10,
     out_id_test = out_id[test_id]
 
 
-    #--------------------------Neural Network---------------------------#
-    class NET(nn.Module):
-        # 2 hidden layer MLP
-        def __init__(self, input_dim, output_dim, w=width):
-            super(NET, self).__init__()
-            self.l1 = nn.Linear(input_dim, w)
-            self.l2 = nn.Linear(w, w)
-            self.l3 = nn.Linear(w, output_dim)
-
-        def forward(self, x):
-            self.x1 = torch.tanh(self.l1(x))
-            self.x2 = torch.tanh(self.l2(self.x1))
-            self.x3 = self.l3(self.x2)
-            return self.x3
-
-    class DEC(nn.Module):
-        def __init__(self, input_dim, output_dim, w=width):
-            super(DEC, self).__init__()
-            self.net = NET(reprs_dim, output_dim, w=width)
-
-        def forward(self, reprs, x_id):
-            self.add1 = reprs[x_id[:,0]]
-            self.add2 = reprs[x_id[:,1]]
-            # hard code addition
-            self.add = self.add1 + self.add2
-            self.out = self.net(self.add)
-            return self.out
-
     # initialize the decoder. init_scale_nn is the initialization scale.
-    model = DEC(input_dim=reprs_dim, output_dim=output_dim, w=width).to(device)
+    model = DEC(reprs_dim, output_dim, width).to(device)
     for p_ in model.net.parameters():
         p_.data = p_.data * init_scale_nn
 
@@ -249,6 +246,19 @@ def train_add(p=10,
     
     print("----------------------------------------")
     print("Task 2: Training with neural network...")
+
+    # make some parallelograms
+    parallelograms = []
+    for i in range(p):
+        for j in range(i+1,p):
+            for m in range(j,p):
+                for n in range(m+1,p):
+                    if (i+n-j-m) == 0:
+                        parallelograms.append([i,n,j,m])
+    parallelograms = torch.tensor(parallelograms).to(device)
+    num_P_ideal = len(parallelograms)
+
+
 
     for step in range(steps):  # loop over the dataset multiple times
 
@@ -305,20 +315,12 @@ def train_add(p=10,
             print("step: %d  | loss: %.8f "%(step, loss_train.cpu().detach().numpy()))
 
         # normalized representations (zero mean, unit variance) 
-        reprs_scale = (reprs-torch.mean(reprs,dim=0).unsqueeze(dim=0))/torch.std((reprs-torch.mean(reprs,dim=0).unsqueeze(dim=0)),dim=0,unbiased=True).unsqueeze(dim=0)
+        reprs_scale = (reprs-reprs.mean(0).unsqueeze(dim=0))/reprs.std(0).unsqueeze(dim=0)
         
         #num_P_ideal: the number of all possible parallelogram
         #num_P_real: the number of parallelogram actually appearing in the representation after training
-        num_P_ideal = 0
-        num_P_real = 0
-        for i in range(p):
-            for j in range(i+1,p):
-                for m in range(j,p):
-                    for n in range(m+1,p):
-                        if (i+n-j-m) == 0:
-                            num_P_ideal += 1
-                            dist = reprs_scale[i] + reprs_scale[n] - reprs_scale[m] - reprs_scale[j]
-                            num_P_real = num_P_real + (torch.mean(dist**2)<threshold_P)
+        dists = reprs_scale[parallelograms[:,:2]].sum(axis=1) - reprs_scale[parallelograms[:,2:]].sum(axis=1)
+        num_P_real = torch.sum((dists**2).mean(1) < threshold_P).item()
                             
         # define RQI as ratio of the number of real vs ideal (all) parallelograms
         rqi = num_P_real/num_P_ideal
@@ -355,7 +357,7 @@ def train_add(p=10,
         acc_pred_test = (len(Dbar_P_id)-len(train_id))/len(test_id)
         
 
-        rqis.append(rqi.item())
+        rqis.append(rqi)
         reprss.append(copy.deepcopy(reprs.cpu().detach().numpy()))
         reprss_scale.append(copy.deepcopy(reprs_scale.cpu().detach().numpy()))
 
@@ -462,4 +464,4 @@ def train_add(p=10,
     return dic
     
 
-#train_add(steps=5000, loss_type="MSE", train_num=45)
+#train_add( reprs_dim = 2)

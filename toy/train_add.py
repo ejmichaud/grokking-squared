@@ -37,15 +37,12 @@ class DEC(nn.Module):
 def calculate_Dbar(train_id, test_id, pgrams, D0_id):
     Dbar_id = list(copy.deepcopy(train_id))
     for i1 in test_id:
-        flag = 0
         for j1 in train_id:
             i, j = D0_id[i1]
             m, n = D0_id[j1]
             if {(i, j), (m, n)} in pgrams:
-                flag = 1
+                Dbar_id.append(i1)
                 break
-        if flag == 1:
-            Dbar_id.append(i1)
     return Dbar_id
 
 # addition toy

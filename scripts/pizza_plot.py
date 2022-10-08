@@ -35,7 +35,8 @@ n_repr = torch.load(files[0]).cpu().numpy().shape[0]
 
 
 cmap = plt.get_cmap('viridis')
-fig, axes = plt.subplots(1, 3, dpi=300, sharex=True, sharey=True, figsize=(13, 4), gridspec_kw={'wspace': 0.05, 'hspace': 0.05})
+fig, axes = plt.subplots(1, 3, dpi=300, sharex=True, sharey=True, figsize=(
+    13, 4), gridspec_kw={'wspace': 0.05, 'hspace': 0.05})
 ax = axes[0]
 ax.set_xlim(-0.05, 1.1)
 ax.set_ylim(-0.05, 1.1)
@@ -80,11 +81,12 @@ if __name__ == "__main__":
         sc = ax.scatter(*np.ones((2, n_repr)), c=np.arange(n_repr),
                         cmap=cmap, label="train", s=100)
         text = ax.text(0.5, 1.01, "", transform=ax.transAxes,
-                    fontdict={"size": "x-large"}, ha='center')
+                       fontdict={"size": "x-large"}, ha='center')
         text2 = ax.text(0.5, .96, "", transform=ax.transAxes,
                         fontdict={"size": "large"}, ha='center')
         sc.set_paths([make_path(f"${m:02d}$") for m in range(n_repr)])
-        update(filenumber, pca, title=titles[index], sc=sc, text=text, text2=text2)
+        update(filenumber, pca,
+               title=titles[index], sc=sc, text=text, text2=text2)
     figname = "-".join(name.split("/"))
     filename = f"/home/kitouni/projects/Grok/grokking-squared/paper-plots/3step_representations/{fname_prefix}{figname}.pdf"
     # plt.colorbar(sc, fraction=0.046, pad=0.04)

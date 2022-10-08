@@ -69,6 +69,7 @@ def train_add(
     threshold_rqi=0.95,
     threshold_P=0.01,
     loss_type="MSE",
+    device = "cpu"
 ):
 
     np.random.seed(seed)
@@ -84,9 +85,7 @@ def train_add(
         output_dim = 2 * p - 1
         print("Using cross entropy, setting output_dim=2p-1={}".format(output_dim))
 
-    device = torch.device(
-        "cpu"
-    )  # torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device(device)
     print("Using device:", device)
 
     reprss = []
@@ -502,5 +501,6 @@ def train_add(
     return dic
 
 
-train_add(reprs_dim=2)
+if __name__ == "__main__":
+  train_add(reprs_dim=2)
 

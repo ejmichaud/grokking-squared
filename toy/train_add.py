@@ -33,6 +33,20 @@ class DEC(nn.Module):
         self.out = self.net(self.add)
         return self.out
 
+#calculate dbar (see paper) depending on the parallelograms in the representation (pgrams)
+def calculate_Dbar(train_id, test_id, pgrams, D0_id):
+    Dbar_id = list(copy.deepcopy(train_id))
+    for i1 in test_id:
+        flag = 0
+        for j1 in train_id:
+            i, j = D0_id[i1]
+            m, n = D0_id[j1]
+            if {(i, j), (m, n)} in pgrams:
+                flag = 1
+                break
+        if flag == 1:
+            Dbar_id.append(i1)
+    return Dbar_id
 
 # addition toy
 def train_add(
@@ -110,7 +124,7 @@ def train_add(
     for i in range(all_num):
         for j in range(i + 1, all_num):
             if np.sum(D0_id[i]) == np.sum(D0_id[j]):
-                P0.append(frozenset({D0_id[i], D0_id[j]}))
+                P0.append({D0_id[i], D0_id[j]})
                 P0_id.append(ii)
                 ii += 1
     P0_num = len(P0_id)
@@ -126,10 +140,10 @@ def train_add(
         m, n = list(P0[i1])[1]
         if i + j == m + n:
             x = np.zeros(p,)
-            x[i] = x[i] + 1
-            x[j] = x[j] + 1
-            x[m] = x[m] - 1
-            x[n] = x[n] - 1
+            x[i] += 1
+            x[j] += 1
+            x[m] -= 1
+            x[n] -= 1
             A.append(x)
             eq_id = eq_id + 1
     A = np.array(A).astype(int)
@@ -151,9 +165,7 @@ def train_add(
                 if i in train_id and j in train_id:
                     P0D_id.append(ii)
                 ii += 1
-    P0D = []
-    for i in P0D_id:
-        P0D.append(P0[i])
+
     # P0D_c includes the parallelograms not in P0(D), but in P0. 'c' means complement.
     P0D_c_id = set(P0_id) - set(P0D_id)
 
@@ -186,27 +198,15 @@ def train_add(
 
     PD_id = PD_id + P0D_id
 
-    PD = []
-    for i in PD_id:
-        PD.append(P0[i])
+    PD = [P0[i] for i in PD_id]
 
     # Dbar(D) contains all the examples that can be got correctly (ideally) given training data
     # One may ask: given a test sample i+j, how can the neural network know its answer if never seen it?
     # The answer is via a good representation, i.e., parallelograms.
     # If there exists a training sample m+n such that i+j=m+n, and (i,j,m,n) is a parallelogram (i.e., Ei+Ej=Em+En)
     # then Dec(Ei+Ej) = Dec(Em+En) = Y_{m+n} = Y_{i+j}, i.e., the nueral network can get i+j correct.
-    Dbar_id = list(copy.deepcopy(train_id))
+    Dbar_id = calculate_Dbar(train_id, test_id, PD, D0_id)
 
-    for i1 in test_id:
-        flag = 0
-        for j1 in train_id:
-            i, j = D0_id[i1]
-            m, n = D0_id[j1]
-            if {(i, j), (m, n)} in PD:
-                flag = 1
-                break
-        if flag == 1:
-            Dbar_id.append(i1)
 
     # Given training data, without training,
     # we are able to determine the ideal accuracy, denoted as \overline{\rm Acc} in the paper.
@@ -391,18 +391,7 @@ def train_add(
             PR.append(P0[ii])
 
     # Dbar(D,P). Note this is different from Dbar(D).
-    Dbar_P_id = list(copy.deepcopy(train_id))
-
-    for i1 in test_id:
-        flag = 0
-        for j1 in train_id:
-            i, j = D0_id[i1]
-            m, n = D0_id[j1]
-            if {(i, j), (m, n)} in PR:
-                flag = 1
-                break
-        if flag == 1:
-            Dbar_P_id.append(i1)
+    Dbar_P_id = calculate_Dbar(train_id, test_id, PR, D0_id)
 
     acc_pred_test = (len(Dbar_P_id) - len(train_id)) / len(test_id)
 

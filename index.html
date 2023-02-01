@@ -174,12 +174,12 @@ Last year, some researchers at OpenAI released a short paper called
     
     We begin with an empirical observation. With an architecture similar to what Power et al. used<sup><a href="#fn1" id="ref1">1</a></sup>, we 
     train on the task of modular addition ($p = 59$) and observe grokking. Across training, we do a PCA on the token embeddings and visualize their first 
-    two principle components.<sup><a href="#fn2" id="ref2">2</a></sup> See the figure below:
+    two principal components.<sup><a href="#fn2" id="ref2">2</a></sup> See the figure below:
 
     <br><br>
     <img src="assets/figures/ringplot.jpg" id="fullwidth">
     <figcaption>Figure 1 of <a href="https://arxiv.org/abs/2205.10343">our paper</a>, visualizing how embeddings change over training. The task here is modular addition ($p = 59$). Here 
-        we show the embeddings simply projected onto the first two principle components. It appears that a distinct ring shape is learned 
+        we show the embeddings simply projected onto the first two principal components. It appears that a distinct ring shape is learned 
         late in training.
     </figcaption>
     <br>
@@ -196,7 +196,7 @@ Last year, some researchers at OpenAI released a short paper called
         <source src="assets/figures/modular-addition59-deep_pca12.mp4"/>
     </video>
     <figcaption>
-        Visualization of first two principle components of learned embeddings throughout training. In this video, we do the PCA at each step. The
+        Visualization of first two principal components of learned embeddings throughout training. In this video, we do the PCA at each step. The
         sudden jumps are an artifact of this and not discontinuous changes in the embeddings themselves. 
     </figcaption>
     <br>
@@ -213,12 +213,12 @@ Last year, some researchers at OpenAI released a short paper called
         <source src="assets/figures/modular-addition59-deep_pca12_fixed.mp4"/>
     </video>
     <figcaption>
-        Visualization of first two principle components of learned embeddings throughout training. In this video, we compute the PCA at the very
+        Visualization of first two principal components of learned embeddings throughout training. In this video, we compute the PCA at the very
         end of training and use these components to visualize the embeddings throughout training. 
     </figcaption>
     <br>
 
-    It appears that the two principle components at the end of training are those for which the randomly-initialized embeddings 
+    It appears that the two principal components at the end of training are those for which the randomly-initialized embeddings 
     were already globally somewhat ordered. From this video, it appears that generalization occurs when the embeddings 
     correctly order themselves additionally at the local level. If you track how "19" moves throughout training, for instance, you see that 
     at initialization it is positioned after (counterclockwise) 20, 22, arguably 25, and on top of 23. When the network has generalized, 19 
